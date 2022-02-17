@@ -377,20 +377,12 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         // lambda function that returns a state object when given the state index. required for accessing reward generator function.
         Int2ObjectFunction<S> stateIndexMap = explorer::getState;
 
-        for (int i = 0; i < 6; i++) {
-            for (int action : uniformizedMEC.getActions().get(i)) {
-                uniformizedMEC.getUniformizedDistribution(i, action).forEach((state, probability) -> {
-                    if (probability <= 0) {
-                        System.out.println("Mistake");
-                    }
-                });
-            }
-        }
-
-        RestrictedMecValueIterator<S, M> valueIterator = new RestrictedMecValueIterator<S, M>(mec, targetPrecision / 2,
+        RestrictedMecBoundedValueIterator<S> valueIterator = new RestrictedMecBoundedValueIterator<S>(mec, targetPrecision / 2,
                 rewardGenerator, stateIndexMap, rMax, timeout);
         valueIterator.setDistributionFunction(x -> y -> uniformizedMEC.getUniformizedDistribution(x, y));
         valueIterator.setLabelFunction(labelFunction);
+        Int2ObjectFunction<Int2DoubleFunction> confidenceWidthFunction = x -> y -> computeConfidenceWidth(x, y);
+        valueIterator.setConfidenceWidthFunction(confidenceWidthFunction);
 
         valueIterator.run();
 
@@ -475,7 +467,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
             double rate = explorer.computeRate(x, y);
             double reward = rewardGenerator.stateReward(explorer.getState(x)) +
                     rewardGenerator.transitionReward(explorer.getState(x), explorer.model().getActions(x).get(y).label());
-            double epsilonHat = computeEpsilonHat(x, y);
+            double epsilonHat = computeEpsilon(x, y);
 
             if (reward >= (mecValue * rMax)) {
                 rate =  rate * (1 + epsilonHat);
@@ -495,7 +487,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
             double rate = explorer.computeRate(x, y);
             double reward = rewardGenerator.stateReward(explorer.getState(x)) +
                     rewardGenerator.transitionReward(explorer.getState(x), explorer.model().getActions(x).get(y).label());
-            double epsilonHat = computeEpsilonHat(x, y);
+            double epsilonHat = computeEpsilon(x, y);
 
             if (reward >= (mecValue * rMax)) {
                 rate =  rate * (1 - epsilonHat);
