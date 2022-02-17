@@ -12,12 +12,16 @@ import prism.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.LinkedTransferQueue;
 
 public class ErrorProbabilityCalculator {
     // Once the error probability is calculated for a state, we update the state as computed.
     // This is because the same state might recursively get called.
     // So to avoid infinite looping, we only once do the calculation for each state.
     Int2BooleanMap computedStates = new Int2BooleanOpenHashMap();
+
+    // Given a state, this tells whether this state has already been added to the queue previously
+    Int2BooleanMap addedToQueue = new Int2BooleanOpenHashMap();
 
     List<Pair<Pair<Integer, Integer>, Double>> stateActionProbabilities = new ArrayList<>();
 
@@ -41,7 +45,63 @@ public class ErrorProbabilityCalculator {
 
     public double getErrorProbability(int initialState) {
         computeErrorProbability(initialState, 1);
+//        computeErrorProbabilityBFS(initialState);
         return computeResult();
+    }
+
+    private void computeErrorProbabilityBFS(int initialState) {
+        LinkedTransferQueue<Pair<Integer, Double>> queue = new LinkedTransferQueue<>();
+        queue.put(new Pair<>(initialState, 1d));
+        addedToQueue.put(initialState, true);
+
+        while (!queue.isEmpty()) {
+
+            Pair<Integer, Double> elem = queue.poll();
+            int state = elem.first;
+            double reachProb = elem.second;
+
+            if (computedStates.containsKey(state)) {
+                continue;
+            }
+
+            List<Pair<Integer, Double>> successors = updateErrorProbabilities(state, reachProb);
+            computedStates.put(state, true);
+
+            for (Pair<Integer, Double> successor : successors) {
+                int s = successor.getKey();
+                double prob = successor.getValue();
+
+                if (addedToQueue.containsKey(s) || BoundedMecQuotient.isSinkState(s)) {
+                    continue;
+                }
+
+                addedToQueue.put(s, true);
+                queue.put(new Pair<>(s, reachProb*prob));
+            }
+            // compute error probability
+            // update computed states
+            // add successors to queue, while adding update addedToQueue
+
+        }
+    }
+
+    private List<Pair<Integer, Double>> updateErrorProbabilities(int state, double reachProbability) {
+        List<Pair<Integer, Double>> stateSuccessors = new ArrayList<>();
+        List<Action> actions = getStateActions.apply(state);
+
+        for (int i = 0; i < actions.size(); i++) {
+            Action action = actions.get(i);
+
+            // If not in MEC, we compute the error probability
+            if (!isInMEC(state, action)) {
+                double prob = oneOfTheSuccessorIsNotVisited(state, i) * reachProbability;
+                stateActionProbabilities.add(new Pair<>(new Pair<>(state, i), prob));
+            }
+
+            stateSuccessors.addAll(getSuccessors(state, i));
+        }
+
+        return stateSuccessors;
     }
 
     private void computeErrorProbability(int state, double reachProbability) {

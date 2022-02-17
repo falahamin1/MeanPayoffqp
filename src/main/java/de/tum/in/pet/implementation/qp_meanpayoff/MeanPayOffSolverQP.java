@@ -12,6 +12,8 @@ import prism.PrismException;
 import simulator.ModulesFileModelGenerator;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class MeanPayOffSolverQP {
@@ -27,8 +29,20 @@ public class MeanPayOffSolverQP {
         List<Mec> mecs = components.stream().map(component -> Mec.create(mdp, component))
                 .collect(Collectors.toList());
 
-        MeanPayoffLPWriter lpWriter = new MeanPayoffLPWriter(mdp, constructor.getRewardGenerator(), mecs, constructor.getStatesList());
+//        MeanPayoffLPWriter lpWriter = new MeanPayoffLPWriter(mdp, constructor.getRewardGenerator(), mecs, constructor.getStatesList());
+        MeanPayoffLPWriter lpWriter = new MeanPayoffLPWriter(mdp, mecs, new MeanPayoffLPWriter.LPRewardProvider() {
+            @Override
+            public double stateReward(int state) {
+                return constructor.getRewardGenerator().stateReward(constructor.getStatesList().get(state));
+            }
+
+            @Override
+            public double transitionReward(int state, int action, Object actionLabel) {
+                return constructor.getRewardGenerator().transitionReward(constructor.getStatesList().get(state),actionLabel);
+            }
+        });
         try {
+            Logger.getLogger("QP").log(Level.INFO, "Model constructed and called LP writer");
             lpWriter.constructLP();
         } catch (Exception e) {
             e.printStackTrace();
