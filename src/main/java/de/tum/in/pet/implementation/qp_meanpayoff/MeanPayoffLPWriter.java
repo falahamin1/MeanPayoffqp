@@ -1,12 +1,10 @@
 package de.tum.in.pet.implementation.qp_meanpayoff;
 
-import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.Mec;
 import de.tum.in.probmodels.model.*;
 import gurobi.*;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import parser.State;
 
 import java.util.List;
 
@@ -16,9 +14,8 @@ import java.util.List;
  */
 public class MeanPayoffLPWriter {
     private final MarkovDecisionProcess mdp;
-    private final RewardGenerator<State> rewardGenerator;
     private final List<Mec> mecs;
-    private final List<State> statesList;
+    private final LPRewardProvider rewardProvider;
 
     private GRBEnv env;
     private GRBModel model;
@@ -34,22 +31,22 @@ public class MeanPayoffLPWriter {
 
 
 
-    public MeanPayoffLPWriter(MarkovDecisionProcess mdp, RewardGenerator<State> rewardGenerator, List<Mec> mecs, List<State> statesList) {
+    public MeanPayoffLPWriter(MarkovDecisionProcess mdp, List<Mec> mecs, LPRewardProvider rewardProvider) {
         this.mdp = mdp;
-        this.rewardGenerator = rewardGenerator;
         this.mecs = mecs;
-        this.statesList = statesList;
+        this.rewardProvider = rewardProvider;
     }
 
-    public void constructLP() throws GRBException {
+    public double constructLP() throws GRBException {
         createGurobiEnv();
         createGurobiModel();
         initializeVariables();
         writeLPConstraints();
         setObjectiveFunction();
-        optimizeModel();
+        double value = optimizeModel();
         disposeGurobiModel();
         disposeGurobiEnv();
+        return value;
     }
 
     private void initializeVariables() throws GRBException {
@@ -265,10 +262,8 @@ public class MeanPayoffLPWriter {
 
         for (int state = 0; state < mdp.getNumStates(); state++) {
             for (int actionIndex = 0; actionIndex < mdp.getActions(state).size(); actionIndex++) {
-                double transReward = rewardGenerator.transitionReward(statesList.get(state),
-                        mdp.getAction(state, actionIndex));
-
-                double stateReward = rewardGenerator.stateReward(statesList.get(state));
+                double transReward = rewardProvider.transitionReward(state, actionIndex, mdp.getAction(state, actionIndex));
+                double stateReward = rewardProvider.stateReward(state);
                 double r = stateReward + transReward;
 
                 objectiveExpr.addTerm(r, x_a.get(state)[actionIndex]);
@@ -278,9 +273,12 @@ public class MeanPayoffLPWriter {
         model.setObjective(objectiveExpr, GRB.MAXIMIZE);
     }
 
-    private void optimizeModel() throws GRBException {
+    private double optimizeModel() throws GRBException {
         model.write("gurobimodel.lp");
         model.optimize();
+
+        GRBLinExpr objective = (GRBLinExpr) model.getObjective();
+        return objective.getValue();
     }
 
     private void createGurobiEnv() throws GRBException {
@@ -321,5 +319,10 @@ public class MeanPayoffLPWriter {
 
     interface IncomingTransitionConsumer {
         void accept(int source, double probability, int target, int actionIndex, Object actionLabel);
+    }
+
+    public interface LPRewardProvider {
+        double stateReward(int state);
+        double transitionReward(int state, int action, Object actionLabel);
     }
 }

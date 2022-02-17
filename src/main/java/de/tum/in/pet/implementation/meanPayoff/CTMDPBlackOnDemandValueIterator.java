@@ -2,6 +2,7 @@ package de.tum.in.pet.implementation.meanPayoff;
 
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
+import de.tum.in.pet.implementation.qp_meanpayoff.MeanPayoffLPWriter;
 import de.tum.in.pet.implementation.reachability.BlackUnboundedReachValues;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.util.ErrorProbabilityCalculator;
@@ -12,8 +13,8 @@ import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.Mec;
 import de.tum.in.probmodels.graph.MecUniformizer;
 import de.tum.in.probmodels.graph.UniformizedMEC;
-import de.tum.in.probmodels.model.Distribution;
-import de.tum.in.probmodels.model.Model;
+import de.tum.in.probmodels.model.*;
+import gurobi.GRBException;
 import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
 import it.unimi.dsi.fastutil.ints.*;
 import prism.Pair;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import static de.tum.in.probmodels.util.Util.isZero;
 
@@ -339,6 +341,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
         simulateMec(explorer, mec, nTransitions, computeNSamples(mec));
         Bounds scaledBounds = findMecBounds(mec, targetPrecision, mecBounds);
+//        Bounds scaledBounds = findMecBoundsUsingLP(mec);
         updateStayAction(mecIndex, scaledBounds);
 
     }
@@ -351,14 +354,38 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         return Bounds.of(mecMeanPayOffBoundsLower.lowerBound(), mecMeanPayOffBoundsUpper.upperBound());
     }
 
+    private Bounds findMecBoundsUsingLP(Mec mec) {
+        double mecMeanPayOff = performUniformizationAndSolveLP(mec, getRateFunction());
+        double startTime = System.currentTimeMillis();
+        double lowerBound = performUniformizationAndSolveLP(mec, getMinimizingRateFunction(mecMeanPayOff));
+        double endTime = System.currentTimeMillis();
+        logger.log(Level.INFO, "Time to solve first LP: " + (endTime - startTime)/1000);
+        startTime = System.currentTimeMillis();
+        double upperBound = performUniformizationAndSolveLP(mec, getMaximizingRateFunction(mecMeanPayOff));
+        endTime = System.currentTimeMillis();
+        logger.log(Level.INFO, "Time to solve second LP: " + (endTime - startTime)/1000);
+        logger.log(Level.INFO, "Lower bound is " + lowerBound + " upper bound is " + upperBound);
+        return Bounds.of(lowerBound/rMax, upperBound/rMax);
+    }
+
     private Bounds performUniformizationAndValueIteration(Mec mec, double targetPrecision, Bounds previousBounds, Int2ObjectFunction<Int2DoubleFunction> rateFunction) {
         CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
 
 
         mecUniformizer.setRateFunction(rateFunction);
-        UniformizedMEC uniformizedMEC = mecUniformizer.uniformize(mec, computeMaxRate(mec));
+        UniformizedMEC uniformizedMEC = mecUniformizer.uniformize(mec, computeMaxRate(mec, rateFunction));
         // lambda function that returns a state object when given the state index. required for accessing reward generator function.
         Int2ObjectFunction<S> stateIndexMap = explorer::getState;
+
+        for (int i = 0; i < 6; i++) {
+            for (int action : uniformizedMEC.getActions().get(i)) {
+                uniformizedMEC.getUniformizedDistribution(i, action).forEach((state, probability) -> {
+                    if (probability <= 0) {
+                        System.out.println("Mistake");
+                    }
+                });
+            }
+        }
 
         RestrictedMecValueIterator<S, M> valueIterator = new RestrictedMecValueIterator<S, M>(mec, targetPrecision / 2,
                 rewardGenerator, stateIndexMap, rMax, timeout);
@@ -377,6 +404,61 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
             scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), previousBounds.lowerBound()));
         }
         return scaledBounds;
+    }
+
+    private double performUniformizationAndSolveLP(Mec mec, Int2ObjectFunction<Int2DoubleFunction> rateFunction) {
+        mecUniformizer.setRateFunction(rateFunction);
+        UniformizedMEC uniformizedMEC = mecUniformizer.uniformize(mec, computeMaxRate(mec, rateFunction));
+
+        // convert to mdp
+        List<Integer> mecStates = List.copyOf(uniformizedMEC.getStates());
+        MarkovDecisionProcess mdp = new MarkovDecisionProcess();
+        mdp.addStates(mecStates.size());
+
+        for (Integer iState : uniformizedMEC.getStates()) {
+            for (Integer action : uniformizedMEC.getActions().get(iState)) {
+                DistributionBuilder builder = Distributions.defaultBuilder();
+
+                uniformizedMEC.getUniformizedDistribution(iState, action).forEach(new Distribution.DistributionConsumer() {
+                    @Override
+                    public void accept(int state, double probability) {
+                        builder.add(mecStates.indexOf(state), probability);
+                    }
+                });
+
+                Action action1 = Action.of(builder.build(), labelFunction.apply(iState).apply(action));
+                mdp.addChoice(iState, action1);
+            }
+        }
+
+        mdp.addInitialState(0);
+
+        // find end components on the uniformized mdp
+        IntSet states = NatBitSets.boundedFilledSet(mdp.getNumStates());
+        List<NatBitSet> components = mecAnalyser.findComponents(mdp, states);
+        List<Mec> mecs = components.stream().map(component -> Mec.create(mdp, component))
+                .collect(Collectors.toList());
+
+        MeanPayoffLPWriter writer = new MeanPayoffLPWriter(mdp, mecs, new MeanPayoffLPWriter.LPRewardProvider() {
+            @Override
+            public double stateReward(int state) {
+                CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) explorer();
+                return rewardGenerator.stateReward(explorer.getState(mecStates.get(state)));
+            }
+
+            @Override
+            public double transitionReward(int state, int action, Object actionLabel) {
+                CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) explorer();
+                return rewardGenerator.transitionReward(explorer.getState(mecStates.get(state)), actionLabel);
+            }
+        });
+
+        try {
+            return writer.constructLP();
+        } catch (GRBException e) {
+            e.printStackTrace();
+            return -1;
+        }
     }
 
 
@@ -651,14 +733,12 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         }
     }
 
-    private double computeMaxRate(Mec mec) {
-        CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
-
+    private double computeMaxRate(Mec mec, Int2ObjectFunction<Int2DoubleFunction> rateFunction) {
         double maxRate = 0;
 
         for (int state : mec.states) {
             for (int action : mec.actions.get(state)) {
-                maxRate = Math.max(explorer.computeRate(state, action), maxRate);
+                maxRate = Math.max(rateFunction.apply(state).apply(action), maxRate);
             }
         }
 
