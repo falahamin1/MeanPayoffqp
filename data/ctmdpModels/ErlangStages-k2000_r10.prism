@@ -4026,7 +4026,7 @@ endmodule
 label "goal" =  (s=3425);
 
 rewards "default"
-  s < 2000 : 100;
-  s > 3500 : 300;
-  true : 50;
+  s < 2000 : 0.286;
+  s > 3500 : 0.857;
+  true : 0.143;
 endrewards

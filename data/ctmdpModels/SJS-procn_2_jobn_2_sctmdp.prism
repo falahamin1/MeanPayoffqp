@@ -44,5 +44,5 @@ endmodule
 label "goal" =  (s=8) | (s=16) | (s=14) | (s=21);
 
 rewards "full"
- true : 200;
+ true : 1;
 endrewards

@@ -17,23 +17,23 @@ mdpConfigs = ["meanPayoff -m data/models/zeroconf_rewards.prism --precision 0.01
               ]
 
 
-ctmdpConfigs = ["meanPayoff -m data/ctmdpModels/DynamicPM-tt_3_qs_2_sctmdp.prism --precision 0.01 --maxReward 200 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.1516 --maxSuccessors 5 --iterSample 10000",
+ctmdpConfigs = ["meanPayoff -m data/ctmdpModels/DynamicPM-tt_3_qs_2_sctmdp.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.1516 --maxSuccessors 5 --iterSample 10000",
 
-                "meanPayoff -m data/ctmdpModels/ErlangStages-k500_r10.prism --precision 0.01 --maxReward 200 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.05 --maxSuccessors 3 --iterSample 10000",
-                "meanPayoff -m data/ctmdpModels/ErlangStages-k2000_r10.prism --precision 0.01 --maxReward 350 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.05 --maxSuccessors 3 --iterSample 10000",
+                "meanPayoff -m data/ctmdpModels/ErlangStages-k500_r10.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.05 --maxSuccessors 3 --iterSample 10000",
+                "meanPayoff -m data/ctmdpModels/ErlangStages-k2000_r10.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.05 --maxSuccessors 3 --iterSample 10000",
 
-                "meanPayoff -m data/ctmdpModels/PollingSystem-jt1_qs1_sctmdp.prism --precision 0.01 --maxReward 43 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.107 --maxSuccessors 3 --iterSample 10000",
-                "meanPayoff -m data/ctmdpModels/PollingSystem-jt1_qs4_sctmdp.prism --precision 0.01 --maxReward 30 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.083 --maxSuccessors 5 --iterSample 10000",
-                "meanPayoff -m data/ctmdpModels/PollingSystem-jt1_qs7_sctmdp.prism --precision 0.01 --maxReward 200 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.083 --maxSuccessors 5 --iterSample 10000",
+                "meanPayoff -m data/ctmdpModels/PollingSystem-jt1_qs1_sctmdp.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.107 --maxSuccessors 3 --iterSample 10000",
+                "meanPayoff -m data/ctmdpModels/PollingSystem-jt1_qs4_sctmdp.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.083 --maxSuccessors 5 --iterSample 10000",
+                "meanPayoff -m data/ctmdpModels/PollingSystem-jt1_qs7_sctmdp.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.083 --maxSuccessors 5 --iterSample 10000",
 
-                "meanPayoff -m data/ctmdpModels/QueuingSystem-lqs_1_rqs_1_jt_2_sctmdp.prism --precision 0.01 --maxReward 200 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0265 --maxSuccessors 7 --iterSample 10000",
-                "meanPayoff -m data/ctmdpModels/QueuingSystem-lqs_2_rqs_2_jt_3_sctmdp.prism --precision 0.01 --maxReward 200 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0186 --maxSuccessors 9 --iterSample 10000",
+                "meanPayoff -m data/ctmdpModels/QueuingSystem-lqs_1_rqs_1_jt_2_sctmdp.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0265 --maxSuccessors 7 --iterSample 10000",
+                "meanPayoff -m data/ctmdpModels/QueuingSystem-lqs_2_rqs_2_jt_3_sctmdp.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0186 --maxSuccessors 9 --iterSample 10000",
 
-                "meanPayoff -m data/ctmdpModels/SJS-procn_2_jobn_2_sctmdp.prism --precision 0.01 --maxReward 200 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.33 --maxSuccessors 2 --iterSample 10000",
-                "meanPayoff -m data/ctmdpModels/SJS-procn_2_jobn_6_sctmdp.prism --precision 0.01 --maxReward 200 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.05 --maxSuccessors 3 --iterSample 10000",
-                "meanPayoff -m data/ctmdpModels/SJS-procn_3_jobn_5_sctmdp.prism --precision 0.01 --maxReward 1000 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.047 --maxSuccessors 4 --iterSample 10000",
-                "meanPayoff -m data/ctmdpModels/SJS-procn_6_jobn_2_sctmdp.prism --precision 0.01 --maxReward 300 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.33 --maxSuccessors 2 --iterSample 10000",
+                "meanPayoff -m data/ctmdpModels/SJS-procn_2_jobn_2_sctmdp.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.33 --maxSuccessors 2 --iterSample 10000",
+                "meanPayoff -m data/ctmdpModels/SJS-procn_2_jobn_6_sctmdp.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.05 --maxSuccessors 3 --iterSample 10000",
+                "meanPayoff -m data/ctmdpModels/SJS-procn_3_jobn_5_sctmdp.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.047 --maxSuccessors 4 --iterSample 10000",
+                "meanPayoff -m data/ctmdpModels/SJS-procn_6_jobn_2_sctmdp.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.33 --maxSuccessors 2 --iterSample 10000",
 
-                "meanPayoff -m data/ctmdpModels/toy.prism --precision 0.01 --maxReward 2 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.11 --maxSuccessors 2 --iterSample 10000"]
+                "meanPayoff -m data/ctmdpModels/toy.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.11 --maxSuccessors 2 --iterSample 10000"]
 
-runConfigs = mdpConfigs
+runConfigs = ctmdpConfigs

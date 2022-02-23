@@ -1027,5 +1027,5 @@ endmodule
 label "goal" =  (s=517);
 
 rewards "full"
- true : 200;
+ true : 1;
 endrewards
