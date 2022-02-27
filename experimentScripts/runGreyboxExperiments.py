@@ -8,7 +8,6 @@
 # to updateMethod and the third 'S' corresponds to simulateMec value.
 
 import os
-from multiprocessing import Pool
 
 import inputOptions
 
