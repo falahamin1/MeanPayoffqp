@@ -35,6 +35,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
     private List<NatBitSet> mecs = new ArrayList<>(); // Holds a list of mecs in the model.
     private Double transDelta = 1d; // equal to delta_T as mentioned in CAV'19. Error tolerance for each transition of the learned model.
+    private Double deltaR = 1d;
 
     private final Int2IntMap stateToMecMap = new Int2IntOpenHashMap(); // Map that returns the mec Index the state is a part of.
     private Int2ObjectMap<Distribution> stayActionMap = new Int2ObjectOpenHashMap<>(); // Map that holds the stay action for mecs, accessible using mecIndices.
@@ -180,7 +181,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
                 currentState = nextState;
 
                 computeDeltaT(explorer, errorTolerance);
-
+                computeDeltaR(explorer, errorTolerance);
             }
 
 
@@ -213,15 +214,26 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
     private void computeDeltaT(CTMDPBlackExplorer<S, M> explorer, double errorTolerance) {
         switch (deltaTCalculationMethod) {
             case P_MIN:
-                transDelta = errorTolerance *pMin/ explorer.getNumExploredActions();
+                transDelta = ((1/(pMin + 1)) * errorTolerance *pMin)/ explorer.getNumExploredActions();
                 break;
 
             case MAX_SUCCESSORS:
-                transDelta = errorTolerance / (explorer.getNumExploredActions() * maxSuccessorsInModel);
+                transDelta = ((maxSuccessorsInModel / (maxSuccessorsInModel + 1)) * errorTolerance) / (explorer.getNumExploredActions() * maxSuccessorsInModel);
                 break;
         }
 
         explorer.updateCountParams(transDelta, pMin);
+    }
+
+    private void computeDeltaR(CTMDPBlackExplorer<S,M> explorer, double errorTolerance) {
+        switch (deltaTCalculationMethod) {
+            case P_MIN:
+                deltaR = ((pMin / (pMin + 1)) * errorTolerance) / explorer.getNumExploredActions();
+                break;
+
+            case MAX_SUCCESSORS:
+                deltaR = ((1/(1 + maxSuccessorsInModel)) * errorTolerance) / explorer.getNumExploredActions();
+        }
     }
 
     private Pair<Integer, Integer> getSampledBestLeavingAction(int currentState) {
@@ -509,7 +521,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
     private double computeEpsilon(int state, int action) {
         CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
         long visitCount = explorer.getActionCounts(state, action);
-        return CTMDPNSamplesTable.getEpsilon(visitCount, transDelta);
+        return CTMDPNSamplesTable.getEpsilon(visitCount, deltaR);
     }
 
     private double computeConfidenceWidth(int state, int action) {
