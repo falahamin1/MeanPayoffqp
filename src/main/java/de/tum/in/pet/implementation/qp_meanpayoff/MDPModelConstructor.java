@@ -35,7 +35,7 @@ public class MDPModelConstructor {
             for (int choice = 0; choice < numChoices; choice++) {
                 numTransitions = generator.getNumTransitions(choice);
                 builder = Distributions.defaultBuilder();
-                choiceLabel = generator.getTransitionAction(choice);
+                choiceLabel = generator.getChoiceAction(choice);
 
                 assert numTransitions > 0;
 

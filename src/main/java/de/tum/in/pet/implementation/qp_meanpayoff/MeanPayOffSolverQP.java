@@ -42,7 +42,6 @@ public class MeanPayOffSolverQP {
             }
         });
         try {
-            Logger.getLogger("QP").log(Level.INFO, "Model constructed and called LP writer");
             lpWriter.constructLP();
         } catch (Exception e) {
             e.printStackTrace();
