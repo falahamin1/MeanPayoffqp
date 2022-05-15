@@ -315,14 +315,4 @@ public class MeanPayoffLPWriter {
             }
         }
     }
-
-
-    interface IncomingTransitionConsumer {
-        void accept(int source, double probability, int target, int actionIndex, Object actionLabel);
-    }
-
-    public interface LPRewardProvider {
-        double stateReward(int state);
-        double transitionReward(int state, int action, Object actionLabel);
-    }
 }

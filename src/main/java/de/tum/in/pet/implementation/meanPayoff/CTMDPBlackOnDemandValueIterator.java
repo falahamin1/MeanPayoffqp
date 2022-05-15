@@ -2,6 +2,7 @@ package de.tum.in.pet.implementation.meanPayoff;
 
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
+import de.tum.in.pet.implementation.qp_meanpayoff.LPRewardProvider;
 import de.tum.in.pet.implementation.qp_meanpayoff.MeanPayoffLPWriter;
 import de.tum.in.pet.implementation.reachability.BlackUnboundedReachValues;
 import de.tum.in.pet.sampler.UnboundedValues;
@@ -389,7 +390,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         // lambda function that returns a state object when given the state index. required for accessing reward generator function.
         Int2ObjectFunction<S> stateIndexMap = explorer::getState;
 
-        RestrictedMecBoundedValueIterator<S> valueIterator = new RestrictedMecBoundedValueIterator<S>(mec, targetPrecision / 2,
+        RestrictedMecBoundedValueIterator<S> valueIterator = new RestrictedMecBoundedValueIterator<>(mec, targetPrecision / 2,
                 rewardGenerator, stateIndexMap, rMax, timeout);
         valueIterator.setDistributionFunction(x -> y -> uniformizedMEC.getUniformizedDistribution(x, y));
         valueIterator.setLabelFunction(labelFunction);
@@ -423,12 +424,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
             for (Integer action : uniformizedMEC.getActions().get(iState)) {
                 DistributionBuilder builder = Distributions.defaultBuilder();
 
-                uniformizedMEC.getUniformizedDistribution(iState, action).forEach(new Distribution.DistributionConsumer() {
-                    @Override
-                    public void accept(int state, double probability) {
-                        builder.add(mecStates.indexOf(state), probability);
-                    }
-                });
+                uniformizedMEC.getUniformizedDistribution(iState, action).forEach((state, probability) -> builder.add(mecStates.indexOf(state), probability));
 
                 Action action1 = Action.of(builder.build(), labelFunction.apply(iState).apply(action));
                 mdp.addChoice(iState, action1);
@@ -443,7 +439,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         List<Mec> mecs = components.stream().map(component -> Mec.create(mdp, component))
                 .collect(Collectors.toList());
 
-        MeanPayoffLPWriter writer = new MeanPayoffLPWriter(mdp, mecs, new MeanPayoffLPWriter.LPRewardProvider() {
+        MeanPayoffLPWriter writer = new MeanPayoffLPWriter(mdp, mecs, new LPRewardProvider() {
             @Override
             public double stateReward(int state) {
                 CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) explorer();

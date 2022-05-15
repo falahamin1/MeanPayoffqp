@@ -30,7 +30,7 @@ public class MeanPayOffSolverQP {
                 .collect(Collectors.toList());
 
 //        MeanPayoffLPWriter lpWriter = new MeanPayoffLPWriter(mdp, constructor.getRewardGenerator(), mecs, constructor.getStatesList());
-        MeanPayoffLPWriter lpWriter = new MeanPayoffLPWriter(mdp, mecs, new MeanPayoffLPWriter.LPRewardProvider() {
+        MeanPayoffLPWriter lpWriter = new MeanPayoffLPWriter(mdp, mecs, new LPRewardProvider() {
             @Override
             public double stateReward(int state) {
                 return constructor.getRewardGenerator().stateReward(constructor.getStatesList().get(state));
