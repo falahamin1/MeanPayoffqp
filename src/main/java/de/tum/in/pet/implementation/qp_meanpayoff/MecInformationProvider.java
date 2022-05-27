@@ -4,7 +4,7 @@ import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.probmodels.model.Distribution;
 import it.unimi.dsi.fastutil.ints.IntSet;
 
-interface MecInformationProvider {
+public interface MecInformationProvider {
     NatBitSet provideStates();
     IntSet provideActions(int state);
     Distribution provideDistribution(int state, int action);

@@ -188,6 +188,9 @@ public class MeanPayoffQP {
 
         if (enableLog) {
             env.set("logFile", "lpLog.log");
+            env.set(GRB.IntParam.OutputFlag, 1);
+        } else {
+            env.set(GRB.IntParam.OutputFlag, 0);
         }
         env.start();
     }
