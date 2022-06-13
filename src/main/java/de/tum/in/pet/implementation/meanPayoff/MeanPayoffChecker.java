@@ -151,6 +151,7 @@ public final class MeanPayoffChecker {
         logger.log(Level.INFO, "Explored states {0}", new Object[]{explorer.exploredStateCount()});
 
         timeVBound.addAll(valueIterator.timeVBound);
+        qp_result.addAll(valueIterator.qp_result);
         additionalWriteInfo.addAll(valueIterator.additionalWriteInfo);
 
         return ip.maxReward * bounds.average();
