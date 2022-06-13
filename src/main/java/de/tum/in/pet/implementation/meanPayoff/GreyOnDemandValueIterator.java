@@ -20,7 +20,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends BlackOnDemand
                                      Double2LongFunction nSampleFunction, double precision, long timeout, SimulateMec simulateMec,
                                      DeltaTCalculationMethod deltaTCalculationMethod, int maxSuccessorsInModel) {
         super(explorer, values, rewardGenerator, revisitThreshold, rMax, pMin, errorTolerance, nSampleFunction, precision,
-                timeout, false, simulateMec, deltaTCalculationMethod, maxSuccessorsInModel);
+                timeout, false, simulateMec, deltaTCalculationMethod, maxSuccessorsInModel, false);
 
         initGreyUnboundedReachValues();
     }

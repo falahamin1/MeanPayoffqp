@@ -5,16 +5,18 @@ import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.DistributionBuilder;
 import de.tum.in.probmodels.model.Distributions;
-import gurobi.GRBException;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 
 public class MeanPayoffQPTest {
     public static void main(String[] args) {
-        MeanPayoffQP qp = new MeanPayoffQP(testCase2(), testCase1RP(), true);
+        MeanPayoffQP meanPayoffQP = new MeanPayoffQP(SampleTestCase2.getMDP(),
+                SampleTestCase2.getComponents(), SampleTestCase2.getReward(), SampleTestCase2.getCWFunction(), SampleTestCase2.getValidMECStateActionPairDetector(), true);
+
         try {
-            qp.solveForMeanPayoff();
-        } catch (GRBException e) {
+            double result = meanPayoffQP.solveForMeanPayoff();
+            System.out.println("MeanPayoff is " + result);
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
