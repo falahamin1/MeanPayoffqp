@@ -212,14 +212,13 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             System.out.println("Solving QP");
             Int2ObjectFunction<Int2BooleanFunction> validStateActionPairDetector = x -> (y -> (explorer.getActionCounts(x, y) > explorer.actionCountFilter));
             MeanPayoffQP qp = new MeanPayoffQP((MarkovDecisionProcess) explorer.model(), mecs, getLPRewardProvider(), confidenceWidthFunction, validStateActionPairDetector, true);
-            double qp_result = -1;
+            double qp_meanpayoff = -1;
             try {
-                qp_result = qp.solveForMeanPayoff();
+                qp_meanpayoff = qp.solveForMeanPayoff();
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            additionalWriteInfo.add(String.valueOf(qp_result));
-
+            qp_result.add(qp_meanpayoff);
         }
 
         return true;

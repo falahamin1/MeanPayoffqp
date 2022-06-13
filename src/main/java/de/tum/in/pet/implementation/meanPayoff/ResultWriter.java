@@ -14,7 +14,7 @@ import java.util.List;
 public class ResultWriter {
 
     public static void write(CommandLine commandLine, List<Pair<Long, Bounds>> timeVBound,
-                             List<String> additionalWriteInfo, String outputFilePath) throws IOException {
+                             List<Double> qp_result, List<String> additionalWriteInfo, String outputFilePath) throws IOException {
         BufferedWriter writer = new BufferedWriter(new FileWriter(outputFilePath));
 
         StringBuilder modelDetails = new StringBuilder();
@@ -44,11 +44,16 @@ public class ResultWriter {
         StringBuilder times = new StringBuilder();
         StringBuilder lowerBounds = new StringBuilder();
         StringBuilder upperBounds = new StringBuilder();
+        StringBuilder qp_line = new StringBuilder();
 
         for (Pair<Long, Bounds> timeBounds: timeVBound){
             times.append(timeBounds.first).append(" ");
             lowerBounds.append(timeBounds.second.lowerBound()).append(" ");
             upperBounds.append(timeBounds.second.upperBound()).append(" ");
+        }
+
+        for (Double qp_meanpayoff : qp_result) {
+            qp_line.append(String.valueOf(qp_meanpayoff)).append(" ");
         }
 
         writer.write(times.toString());
@@ -57,6 +62,7 @@ public class ResultWriter {
         writer.newLine();
         writer.write(upperBounds.toString());
         writer.newLine();
+        writer.write(qp_line.toString());
 
         for (String info : additionalWriteInfo) {
             writer.write(info);

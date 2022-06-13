@@ -41,6 +41,7 @@ the values INT_MAX, INT_MAX-1, INT_MAX-2 are assigned to special states.
 public final class MeanPayoffChecker {
     private static final Logger logger = Logger.getLogger(MeanPayoffChecker.class.getName());
     private static final List<Pair<Long, Bounds>> timeVBound = new ArrayList<>();
+    private static final List<Double> qp_result = new ArrayList<>();
     private static final List<String> additionalWriteInfo = new ArrayList<>();
 
     public static double solve(ModelGenerator generator, int rewardIndex, InputValues inputValues)
@@ -96,6 +97,7 @@ public final class MeanPayoffChecker {
         logger.log(Level.INFO, "Explored states {0}", new Object[]{explorer.exploredStateCount()});
 
         timeVBound.addAll(valueIterator.timeVBound);
+        qp_result.addAll(valueIterator.qp_result);
         additionalWriteInfo.addAll(valueIterator.additionalWriteInfo);
 
         return inputValues.maxReward * bounds.average();
@@ -203,7 +205,7 @@ public final class MeanPayoffChecker {
         double meanPayoff = solve(generator, rewardIndex, ip);
         long endTime = System.currentTimeMillis();
 
-        ResultWriter.write(commandLine, timeVBound, additionalWriteInfo, ip.outputPath);
+        ResultWriter.write(commandLine, timeVBound, qp_result, additionalWriteInfo, ip.outputPath);
 
         logger.log(Level.INFO, "Time to parse, construct model, and compute {0}", new Object[]{endTime - startTime1});
         logger.log(Level.INFO, "Time to compute {0}", new Object[]{endTime - startTime2});

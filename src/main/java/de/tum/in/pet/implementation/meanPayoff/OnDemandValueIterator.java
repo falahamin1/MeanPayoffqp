@@ -46,6 +46,8 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
   protected List<Pair<Long, Bounds>> timeVBound = new ArrayList<>();
 
+  protected List<Double> qp_result = new ArrayList<>();
+
   protected final long timeout;
 
   // Each string will be added to the temp.txt file.
