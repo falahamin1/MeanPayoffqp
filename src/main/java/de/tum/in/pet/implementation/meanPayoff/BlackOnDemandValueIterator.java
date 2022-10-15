@@ -2,10 +2,7 @@ package de.tum.in.pet.implementation.meanPayoff;
 
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
-import de.tum.in.pet.implementation.qp_meanpayoff.LPRewardProvider;
-import de.tum.in.pet.implementation.qp_meanpayoff.MeanPayoffQP;
-import de.tum.in.pet.implementation.qp_meanpayoff.MecMeanPayoffQP;
-import de.tum.in.pet.implementation.qp_meanpayoff.MecInformationProvider;
+import de.tum.in.pet.implementation.qp_meanpayoff.*;
 import de.tum.in.pet.implementation.reachability.BlackUnboundedReachValues;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.util.ErrorProbabilityCalculator;
@@ -412,14 +409,17 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
         // lambda function that returns a state object when given the state index. required for accessing reward generator function.
         Bounds newBounds;
+        if (currPrecision < this.precision / 2) {
+            return;
+        }
         if (solveByQP)
-            newBounds = getMecValueByQP(mec);
-        else{
-            if (currPrecision < this.precision / 2) {
-                return;
-            }
+            newBounds = getBoundsBySG(mec, targetPrecision);
+        else
+        {
             newBounds = getBoundsByVI(mec, targetPrecision);
         }
+
+
 
         Bounds scaledBounds = Bounds.of(newBounds.lowerBound() / this.rMax, newBounds.upperBound() / this.rMax);
 
@@ -690,7 +690,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         }
     }
 
-    private Bounds getMecValueByQP(Mec mec) {
+    private double getMecValueByQP(Mec mec) {
 //        BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) this.explorer;
 //        NatBitSet mecStates = mecs.get(mecIndex);
 //
@@ -705,8 +705,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         } catch (GRBException e) {
             throw new RuntimeException(e);
         }
-        Bounds bounds = Bounds.of(0.0,result);
-        return bounds;
+        return result;
     }
 
     private MecInformationProvider getMecInfoProvider(Mec mec) {
@@ -754,5 +753,25 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
                 return rewardGenerator.transitionReward(stateIdentifier, label);
             }
         };
+    }
+
+    private Bounds getBoundsBySG(Mec mec, double precision)
+    {
+
+        MecInformationProvider mecinfo = getMecInfoProvider(mec);
+        LPRewardProvider rewardProvider = getLPRewardProvider();
+        NatBitSet mecStates = mecinfo.provideStates();
+        StochasticGameMec sg = new StochasticGameMec(mecStates, mecinfo, false, pMin, rewardProvider);
+        sg.createSG();
+        StochasticGameVI vi = new StochasticGameVI(sg,0.8, timeout);
+        vi.SolveSG(precision/2);
+        double hbound = rounded(getMecValueByQP(mec));
+        Bounds bound = vi.getBounds();
+        return Bounds.of(bound.lowerBound(), hbound);
+    }
+
+    private double rounded (double val)
+    {
+        return (Math.round(val * 10000.0) / 10000.0);
     }
 }
