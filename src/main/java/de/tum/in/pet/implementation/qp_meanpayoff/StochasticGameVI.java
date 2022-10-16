@@ -64,7 +64,6 @@ public class StochasticGameVI {
         initialiseBounds();
         while(!endcondition && !isTimeout())
         {
-            n++;
             Int2DoubleMap uvaluesp1 = new Int2DoubleOpenHashMap();
             Int2DoubleMap lvaluesp1 = new Int2DoubleOpenHashMap();
             Int2DoubleMap uvaluesp2 = new Int2DoubleOpenHashMap();
