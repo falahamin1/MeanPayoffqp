@@ -33,6 +33,8 @@ public class StochasticGameVI {
 
     private  Double upperBound;
 
+    private double maxreward;
+
     private long timeout;
 
     private double tau; //for adding aperiodicity as mentioned in Putterman section 8.5.4
@@ -56,8 +58,9 @@ public class StochasticGameVI {
          this.timeout = timeout;
      }
 
-     public void SolveSG(double precision)
+     public void SolveSG(double precision, double maxreward)
      {
+         this.maxreward = maxreward;
          boolean endcondition = false;
          NatBitSet Player1 = sg.player1();
          NatBitSet Player2= sg.player2();
@@ -76,7 +79,7 @@ public class StochasticGameVI {
                  IntSet actions = sg.getActionP1(player);
                  for (int action : actions)
                  {
-                     double reward = sg.getReward(player, action);
+                     double reward = sg.getReward(player, action) / maxreward;
                      int player2 = sg.getP2Successor(player, action);
                      player2Rewards.put(player2,reward);
 
@@ -271,7 +274,7 @@ public class StochasticGameVI {
          }
          lowerBound = rounded(mindiffl);
          upperBound = rounded(maxdiffu);
-         return Bounds.of(lowerBound,upperBound);
+         return Bounds.of(lowerBound * maxreward,upperBound * maxreward);
 
      }
 

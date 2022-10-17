@@ -714,7 +714,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         StochasticGameMec sg = new StochasticGameMec(mecStates, mecinfo, false, pMin, rewardProvider);
         sg.createSG();
         StochasticGameVI vi = new StochasticGameVI(sg,0.8, timeout);
-        vi.SolveSG(precision/2);
+        vi.SolveSG(precision/2, rMax);
 //        double hbound = rounded(getMecValueByQP(mec));
         Bounds bound = vi.getBounds();
         return bound;
