@@ -68,8 +68,10 @@ public class StochasticGameMec {
         }
 
     }
-    // Each action is probability distribution where the probabilities are in the interval of
-    // sampled probability +- width .
+
+    /** Each action is probability distribution where the probabilities are in the interval of
+    sampled probability +- width .
+     **/
     private void addP2Actions(int p1_state,int p2_state, int p1_action)
     {
         Distribution dist = mecInfoProvider.provideDistribution(p1_state, p1_action);
@@ -107,7 +109,18 @@ public class StochasticGameMec {
 
 
     }
-    // Add the probability distributions which satisfies all the conditions
+
+    /** Add the probability distributions which satisfies all the conditions
+     * Recursively adds the edge probabilities.
+     * @param p2state
+     * @param estimated_probs
+     * @param upper_bounds
+     * @param lower_bounds
+     * @param successor_states
+     * @param same
+     * @param filled
+     * @param size
+     */
     private void addProbabilityDistributions(int p2state, double[] estimated_probs, double[] upper_bounds, double[] lower_bounds, int[] successor_states, int same, int filled, int size)
     {
         if ( filled == size)
@@ -124,7 +137,10 @@ public class StochasticGameMec {
             {
                 estimated_probs[same] = rounded(last_val);
                 double[] temp = new double[estimated_probs.length];
-                System.arraycopy(estimated_probs, 0, temp, 0, estimated_probs.length);
+                for (int i =0 ; i < estimated_probs.length; i++)
+                {
+                    temp[i] = estimated_probs[i];
+                }
                 addp2action(p2state, successor_states , temp);
 
             }
@@ -162,7 +178,12 @@ public class StochasticGameMec {
 
     }
 
-    // The given probability distribution satisfying all the conditions is added as a Player2 action
+    /** The given probability distribution satisfying all the conditions is added as a Player2 action
+     *
+     * @param p2state
+     * @param successor_states
+     * @param probabilities
+     */
     private void addp2action(int p2state, int[] successor_states , double[] probabilities)
     {
         Player_2_action_count++;
@@ -177,6 +198,7 @@ public class StochasticGameMec {
             IntSet action = get_actions_p2.get(p2state);
             action.add(Player_2_action_count);
             get_actions_p2.put(p2state,action);
+//            action = get_actions_p2.get(p2state);
         }
         GameDistribution gd = new GameDistribution(probabilities, successor_states, Player_2_action_count);
         p2_action_dist.put(Player_2_action_count, gd);
@@ -184,10 +206,15 @@ public class StochasticGameMec {
 
     }
 
-    // Rounds to 4 decimal places
+    /** Rounds to 4 decimal places
+     *
+     * @param val
+     * @return
+     */
     private double rounded (double val)
     {
-        return Math.round(val * 10000.0) / 10000.0;
+        double round_val = Math.round(val * 10000.0) / 10000.0;
+        return round_val;
     }
 
     public void displaySG() {
@@ -213,14 +240,16 @@ public class StochasticGameMec {
 
     public GameDistribution getP2distribution (int state, int action)
     {
-        return p2_action_dist.get(action);
+        GameDistribution gd = p2_action_dist.get(action);
+        return gd;
     }
 
     public double getReward (int state , int action)
     {
         double transitionReward = rewardProvider.transitionReward(state, action, null);
         double stateReward= rewardProvider.stateReward(state);
-        return rounded(transitionReward + stateReward);
+        double return_val = rounded(transitionReward + stateReward);
+        return return_val;
 
     }
 

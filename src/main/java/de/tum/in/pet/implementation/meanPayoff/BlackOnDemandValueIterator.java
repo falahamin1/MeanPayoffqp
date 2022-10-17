@@ -128,7 +128,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
                     if (BoundedMecQuotient.isUncertainState(currentState) || BoundedMecQuotient.isPlusState(currentState)) {
                         int mecIndex = stateToMecMap.get(visitStack.removeInt(visitStack.size() - 1));
                         explorer.activateActionCountFilter();
-                        updateMec(mecIndex, solveByQP);  //MECs are simulated and then solved using qp to get the upper bound
+                        updateMec(mecIndex);  //MECs are simulated and then solved using qp to get the upper bound
                         explorer.deactivateActionCountFilter();
                     }
                     break;
@@ -315,7 +315,8 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     }
 
     /**
-     * Implements lines 11-15 in CAV'17 paper. Runs VI on mec.
+     * Implements lines 11-15 in CAV'17 paper. Based on solveByQP, either runs VI on mec or converts
+     * to stochastic game and get lower bound and gets the upper bound using QP.
      *
      * @param mecIndex: Index of mec on which VI has to be run.
      */
@@ -328,13 +329,14 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         Bounds mecBounds = getMecBounds(mecIndex);
 
         double currPrecision = mecBounds.difference() * this.rMax;
+        double qpBounds = 1e8;
+
+        double targetPrecision = currPrecision / 2;
 
         if (currPrecision < this.precision / 2) {
             return;
         }
 
-        double targetPrecision = currPrecision / 2;
-
         // get all the MEC states corresponding to mecRepresentative.
         Mec mec = getMec(mecIndex);
 
@@ -348,59 +350,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             for (int actionInd : mec.actions.get(state)) {
                 nTransitions += explorer.model().getChoice(state, actionInd).size();
             }
-        }
-
-        simulateMec(explorer, mec, nTransitions, computeNSamples(mec));
-
-        assert !isZero(targetPrecision);
-
-        // lambda function that returns a state object when given the state index. required for accessing reward generator function.
-        Bounds newBounds = getBoundsByVI(mec, targetPrecision);
-        Bounds scaledBounds = Bounds.of(newBounds.lowerBound() / this.rMax, newBounds.upperBound() / this.rMax);
-
-        // In the case when we run VI after some new states have been added, the lower bounds may be worse than the
-        // previously computed bounds. However, we know that the MEC's reward must be greater than the previously computed
-        // lower bound value. Thus, we can use the previously computer lower bound value for slightly faster convergence.
-        scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), mecBounds.lowerBound()));
-
-
-        updateStayAction(mecIndex, scaledBounds);
-
-    }
-
-    /**
-     * Updates MEC upper bound by solving a QP
-     * @param mecIndex
-     */
-    protected void updateMec(int mecIndex, boolean solveByQP) {
-
-        BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) this.explorer;
-
-        // mecBounds now contain the scaled reward upper and lower bounds.
-        Bounds mecBounds = getMecBounds(mecIndex);
-
-        double currPrecision = mecBounds.difference() * this.rMax;
-        double qpBounds = 1e8;
-
-        double targetPrecision = currPrecision / 2;
-
-        // get all the MEC states corresponding to mecRepresentative.
-        Mec mec = getMec(mecIndex);
-
-        if (mec.states.size() == 0) {
-            return;
-        }
-
-        // We start with 1, because if 0, the requiredSamples become NaN
-        int nTransitions = 1;
-        for (int state : mec.actions.keySet()) {
-            for (int actionInd : mec.actions.get(state)) {
-                nTransitions += explorer.model().getChoice(state, actionInd).size();
-            }
-        }
-        if(computeNSamples(mec)==qpBounds)  //added a new stopping criteria as qp method do not look at precision
-        {
-            return;
         }
 
         simulateMec(explorer, mec, nTransitions, computeNSamples(mec));
@@ -409,11 +358,12 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
         // lambda function that returns a state object when given the state index. required for accessing reward generator function.
         Bounds newBounds;
-        if (currPrecision < this.precision / 2) {
-            return;
-        }
+
         if (solveByQP)
+        {
             newBounds = getBoundsBySG(mec, targetPrecision);
+        }
+
         else
         {
             newBounds = getBoundsByVI(mec, targetPrecision);
@@ -544,7 +494,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             // already very precise. Thus, the probability of reaching the uncertain state would be very small and we may
             // never be able to run VI on the newly added states again. Thus, we need to run VI straight after adding new
             // states.
-            updateMec(i, solveByQP);
+            updateMec(i);
         }
 
         explorer.deactivateActionCountFilter();
@@ -698,7 +648,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 //        System.out.println("QP check");
         MecInformationProvider mecInformation = getMecInfoProvider(mec);
         LPRewardProvider rewardInformation = getLPRewardProvider();
-        MecMeanPayoffQP qp = new MecMeanPayoffQP(mecInformation, rewardInformation, false);
+        MecMeanPayoffQP qp = new MecMeanPayoffQP(mecInformation, rewardInformation,pMin , false);
         double result;
         try {
             result = qp.solveForMeanPayoff();
@@ -765,9 +715,10 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         sg.createSG();
         StochasticGameVI vi = new StochasticGameVI(sg,0.8, timeout);
         vi.SolveSG(precision/2);
-        double hbound = rounded(getMecValueByQP(mec));
+//        double hbound = rounded(getMecValueByQP(mec));
         Bounds bound = vi.getBounds();
-        return Bounds.of(bound.lowerBound(), hbound);
+        return bound;
+//        return Bounds.of(bound.lowerBound(), hbound);
     }
 
     private double rounded (double val)

@@ -3,10 +3,7 @@ package de.tum.in.pet.implementation.qp_meanpayoff;
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.probmodels.model.Distribution;
 import gurobi.*;
-import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.ints.*;
 
 public class MecMeanPayoffQP {
     private final MecInformationProvider mecInfoProvider;
@@ -17,6 +14,9 @@ public class MecMeanPayoffQP {
 
     private GRBEnv env;
     private GRBModel model;
+    private double pMin;
+
+    private Int2ObjectMap<Int2DoubleMap> xa_values;
 
     // For every transition, there is a gurobi variable
     private Int2ObjectMap<Int2ObjectMap<GRBVar[]>> t;
@@ -24,10 +24,12 @@ public class MecMeanPayoffQP {
     // For every state-action pair, variable x_a is present
     private Int2ObjectMap<Int2ObjectMap<GRBVar>> x_a;
 
-    public MecMeanPayoffQP(MecInformationProvider mecInfoProvider, LPRewardProvider rewardProvider, boolean enableLog) {
+    public MecMeanPayoffQP(MecInformationProvider mecInfoProvider, LPRewardProvider rewardProvider, double pMin, boolean enableLog) {
         this.mecInfoProvider = mecInfoProvider;
         this.rewardProvider = rewardProvider;
         this.enableLog = enableLog;
+        this.pMin = pMin;
+        this.xa_values = new Int2ObjectOpenHashMap<>();
     }
 
     public double solveForMeanPayoff() throws GRBException {
@@ -37,6 +39,8 @@ public class MecMeanPayoffQP {
         writeLPConstraints();
         setObjectiveFunction();
         double value = optimizeModel();
+//        xa_values = getStrategyValues();
+//        double [] strategy_values = getStrategyValues();
         disposeGurobiModel();
         disposeGurobiEnv();
         if (enableLog) {
@@ -135,12 +139,13 @@ public class MecMeanPayoffQP {
 
     private void addTransitionProbabilityConstraints(int state, int action, Int2ObjectMap<GRBQuadExpr> lhs_exprs) throws GRBException {
         Distribution distribution = mecInfoProvider.provideDistribution(state, action);
-        double confidenceWidth = mecInfoProvider.provideConfidenceWidth(state, action);
+        double confidenceWidth = rounded(mecInfoProvider.provideConfidenceWidth(state, action));
+//        System.out.println("Width is 2: "+confidenceWidth);
         GRBLinExpr lhs_sumToOneConstraint = new GRBLinExpr();
 
         int i = 0;
         for (Int2DoubleMap.Entry entry : distribution) {
-            double estimatedProb = entry.getDoubleValue();
+            double estimatedProb = rounded(entry.getDoubleValue());
             int target = entry.getIntKey();
 
             GRBLinExpr expr = new GRBLinExpr();
@@ -152,7 +157,7 @@ public class MecMeanPayoffQP {
             GRBLinExpr expr2 = new GRBLinExpr();
             expr2.addTerm(1, t.get(state).get(action)[i]);
             double c2_prob = estimatedProb-confidenceWidth;
-            c2_prob = (c2_prob < 0) ? 0 : c2_prob;
+            c2_prob = Math.max(c2_prob, pMin);
             model.addConstr(expr2, GRB.GREATER_EQUAL, c2_prob, "C2( " + state + ", " + action + ", " + target + ")");
 
             lhs_sumToOneConstraint.addTerm(1, t.get(state).get(action)[i]);
@@ -252,5 +257,34 @@ public class MecMeanPayoffQP {
         System.out.println("x_a_var name is " + x_a_var.get(GRB.StringAttr.VarName));
         System.out.println("\n");
         System.out.println("\n");
+    }
+    private double rounded (double val)
+    {
+        double round_val = Math.round(val * 10000.0) / 10000.0;
+        return round_val;
+    }
+    private Int2ObjectMap<Int2DoubleMap> getStrategyValues() throws GRBException
+    {
+        Int2ObjectMap<Int2DoubleMap> xa_values = new Int2ObjectOpenHashMap<>();
+        NatBitSet states = mecInfoProvider.provideStates();
+        for(int state : states)
+        {
+            Int2DoubleMap actionset = new Int2DoubleOpenHashMap();
+            IntSet actions = mecInfoProvider.provideActions(state);
+            for(int action : actions)
+            {
+                GRBVar v = x_a.get(state).get(action);
+                double value = v.get(GRB.DoubleAttr.X);
+                actionset.put(action, value);
+                System.out.println(value);
+            }
+            xa_values.put(state, actionset);
+        }
+        return xa_values;
+    }
+
+    public Int2ObjectMap<Int2DoubleMap> getFinalValues ()
+    {
+        return xa_values;
     }
 }

@@ -94,7 +94,7 @@ if input_values.get_error_probability:
 
 # add --qp for running in qp mode and adding a timeout for the qp execution (temporary)
 for i in range(len(runConfigs)):
-    runConfigs[i] += "--qp"
+    runConfigs[i] += " --qp"
 
 
 
