@@ -22,6 +22,8 @@ public class InputOptions {
     public static Option timeoutOption = new Option(null, "timeout", true, "Time before experiment forcefully terminates");
     public static Option getErrorProbabilityOption = new Option(null, "getErrorProbability", false, "Computes the error probability for blackbox with greybox equations");
     public static Option solveWithQP = new Option(null, "qp", false, "Solve using linear/quadratic programming");
+
+    public static Option solveWithSG = new Option(null, "sg", false, "Solve by converting MEC to stochastic game and use VI");
     public static Option simulateMec = new Option(null, "simulateMec", true, "Algorithm for simulating MEC, before value iteration");
     public static Option outputFile = new Option("o", "outputPath", true, "Path to write the output");
     public static Option maxSuccessorOption = new Option(null, "maxSuccessors", true, "Maximum number of successors in model");
@@ -46,6 +48,7 @@ public class InputOptions {
                 .addOption(timeoutOption)
                 .addOption(getErrorProbabilityOption)
                 .addOption(solveWithQP)
+                .addOption(solveWithSG)
                 .addOption(simulateMec)
                 .addOption(outputFile)
                 .addOption(maxSuccessorOption)

@@ -53,6 +53,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     private final DeltaTCalculationMethod deltaTCalculationMethod;
 
     private final boolean solveByQP;
+    private final boolean solveBySG;
 
     protected static final double initialNSamples = 1e4;
     protected static final double multiplicativeFactor = 5;
@@ -61,7 +62,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
                                       int revisitThreshold, double rMax, double pMin, double errorTolerance,
                                       Double2LongFunction nSampleFunction, double precision, long timeout,
                                       boolean getErrorProbability, SimulateMec simulateMec,
-                                      DeltaTCalculationMethod deltaTCalculationMethod, int maxSuccessorsInModel, boolean solveByQP) {
+                                      DeltaTCalculationMethod deltaTCalculationMethod, int maxSuccessorsInModel, boolean solveByQP, boolean solveBySG) {
         super(explorer, values, rewardGenerator, revisitThreshold, rMax, precision, timeout);
         this.pMin = pMin;
         this.errorTolerance = errorTolerance;
@@ -71,6 +72,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         this.deltaTCalculationMethod = deltaTCalculationMethod;
         this.maxSuccessorsInModel = maxSuccessorsInModel;
         this.solveByQP = solveByQP;
+        this.solveBySG = solveBySG;
     }
 
     @Override
@@ -361,10 +363,11 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
         if (solveByQP)
         {
+            newBounds = getBoundsByQP(mec, targetPrecision);
+        } else if (solveBySG) {
             newBounds = getBoundsBySG(mec, targetPrecision);
-        }
 
-        else
+        } else
         {
             newBounds = getBoundsByVI(mec, targetPrecision);
         }
@@ -706,10 +709,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     }
 
     private Bounds getBoundsBySG(Mec mec, double precision)
-    {//        scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), mecBounds.lowerBound()));
-//        System.out.println("lower bound: "+ scaledBounds.lowerBound() + " upper bound: "+scaledBounds.upperBound());
-//        updateStayAction(mecIndex, scaledBounds);
-
+    {
         MecInformationProvider mecinfo = getMecInfoProvider(mec);
         LPRewardProvider rewardProvider = getLPRewardProvider();
         NatBitSet mecStates = mecinfo.provideStates();
@@ -717,10 +717,23 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         sg.createSG();
         StochasticGameVI vi = new StochasticGameVI(sg,0.8, timeout);
         vi.SolveSG(precision/2, rMax);
-//        double hbound = rounded(getMecValueByQP(mec));
         Bounds bound = vi.getBounds();
         return bound;
-//        return Bounds.of(bound.lowerBound(), hbound);
+
+    }
+//todo: normalisation for qp and SG Vi not proper(counter example takes time).
+    private Bounds getBoundsByQP(Mec mec, double precision)
+    {
+        MecInformationProvider mecinfo = getMecInfoProvider(mec);
+        LPRewardProvider rewardProvider = getLPRewardProvider();
+        NatBitSet mecStates = mecinfo.provideStates();
+        StochasticGameMec sg = new StochasticGameMec(mecStates, mecinfo, false, pMin, rewardProvider);
+        sg.createSG();
+        StochasticGameVI vi = new StochasticGameVI(sg,0.8, timeout);
+        vi.SolveSG(precision/2, rMax);
+        double hbound = rounded(getMecValueByQP(mec));
+        Bounds bound = vi.getBounds();
+        return Bounds.of(bound.lowerBound(), hbound);
     }
 
     private double rounded (double val)

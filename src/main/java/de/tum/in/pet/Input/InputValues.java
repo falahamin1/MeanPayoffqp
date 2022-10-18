@@ -20,6 +20,7 @@ public class InputValues {
     public final UpdateMethod updateMethod;
     public final String rewardStructure;
     public final boolean solveUsingQP;
+    public final boolean solveUsingSG;
     public final SimulateMec simulateMec;
     public final String outputPath;
     public final int maxSuccessorsInModel;
@@ -29,7 +30,7 @@ public class InputValues {
     public InputValues(double precision, int revisitThreshold, double maxReward, double pMin, double errorTolerance,
                        int iterSamples, long timeout, boolean getErrorProbability, SuccessorHeuristic successorHeuristic,
                        InformationLevel informationLevel, UpdateMethod updateMethod, String rewardStructure, boolean solveUsingQP,
-                       SimulateMec simulateMec, String outputPath, int maxSuccessorsInModel, DeltaTCalculationMethod deltaTCalculationMethod) {
+                       boolean solveUsingSG, SimulateMec simulateMec, String outputPath, int maxSuccessorsInModel, DeltaTCalculationMethod deltaTCalculationMethod) {
         this.precision = precision;
         this.revisitThreshold = revisitThreshold;
         this.maxReward = maxReward;
@@ -43,6 +44,7 @@ public class InputValues {
         this.updateMethod = updateMethod;
         this.rewardStructure = rewardStructure;
         this.solveUsingQP = solveUsingQP;
+        this.solveUsingSG = solveUsingSG;
         this.simulateMec = simulateMec;
         this.outputPath = outputPath;
         this.maxSuccessorsInModel = maxSuccessorsInModel;

@@ -39,6 +39,8 @@ public class InputParser {
 
         boolean solveUsingQP = isOptionPresent(commandLine, InputOptions.solveWithQP);
 
+        boolean solveUsingSG = isOptionPresent(commandLine, InputOptions.solveWithSG);
+
         SimulateMec simulateMec = CliHelper.parseSimulateMec(
                 commandLine.getOptionValue(InputOptions.simulateMec.getLongOpt()), DefaultInputValues.SIMULATE_MEC);
 
@@ -63,6 +65,7 @@ public class InputParser {
                 updateMethod,
                 rewardStructure,
                 solveUsingQP,
+                solveUsingSG,
                 simulateMec,
                 outputPath,
                 maxSuccessorsInModel,
