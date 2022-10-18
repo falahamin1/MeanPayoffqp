@@ -329,7 +329,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         Bounds mecBounds = getMecBounds(mecIndex);
 
         double currPrecision = mecBounds.difference() * this.rMax;
-        double qpBounds = 1e8;
 
         double targetPrecision = currPrecision / 2;
 
@@ -359,6 +358,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         // lambda function that returns a state object when given the state index. required for accessing reward generator function.
         Bounds newBounds;
 
+
         if (solveByQP)
         {
             newBounds = getBoundsBySG(mec, targetPrecision);
@@ -376,9 +376,9 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         // In the case when we run VI after some new states have been added, the lower bounds may be worse than the
         // previously computed bounds. However, we know that the MEC's reward must be greater than the previously computed
         // lower bound value. Thus, we can use the previously computer lower bound value for slightly faster convergence.
+//
         scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), mecBounds.lowerBound()));
-
-
+        System.out.println("lower bound: "+ scaledBounds.lowerBound() + " upper bound: "+scaledBounds.upperBound());
         updateStayAction(mecIndex, scaledBounds);
 
     }
@@ -706,7 +706,9 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     }
 
     private Bounds getBoundsBySG(Mec mec, double precision)
-    {
+    {//        scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), mecBounds.lowerBound()));
+//        System.out.println("lower bound: "+ scaledBounds.lowerBound() + " upper bound: "+scaledBounds.upperBound());
+//        updateStayAction(mecIndex, scaledBounds);
 
         MecInformationProvider mecinfo = getMecInfoProvider(mec);
         LPRewardProvider rewardProvider = getLPRewardProvider();

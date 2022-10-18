@@ -274,7 +274,7 @@ public class StochasticGameVI {
          }
          lowerBound = rounded(mindiffl);
          upperBound = rounded(maxdiffu);
-         return Bounds.of(lowerBound * maxreward,upperBound * maxreward);
+         return Bounds.of(lowerBound,upperBound);
 
      }
 
