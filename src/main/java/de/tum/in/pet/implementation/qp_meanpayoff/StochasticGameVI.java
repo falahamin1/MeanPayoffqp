@@ -79,7 +79,7 @@ public class StochasticGameVI {
                  IntSet actions = sg.getActionP1(player);
                  for (int action : actions)
                  {
-                     double reward = sg.getReward(player, action) / maxreward;
+                     double reward = sg.getReward(player, action);
                      int player2 = sg.getP2Successor(player, action);
                      player2Rewards.put(player2,reward);
 
@@ -272,8 +272,8 @@ public class StochasticGameVI {
              mindiffl = Math.min(mindiffl,diffl);
              maxdiffu = Math.max(maxdiffu,diffu);
          }
-         lowerBound = rounded(mindiffl);
-         upperBound = rounded(maxdiffu);
+         lowerBound = mindiffl;
+         upperBound = maxdiffu;
          return Bounds.of(lowerBound,upperBound);
 
      }

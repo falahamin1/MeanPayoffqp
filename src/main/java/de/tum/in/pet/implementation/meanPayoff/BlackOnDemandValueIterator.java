@@ -330,7 +330,9 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         // mecBounds now contain the scaled reward upper and lower bounds.
         Bounds mecBounds = getMecBounds(mecIndex);
 
-        double currPrecision = mecBounds.difference() * this.rMax;
+//        double currPrecision = mecBounds.difference() * this.rMax;
+
+        double currPrecision = mecBounds.difference();
 
         double targetPrecision = currPrecision / 2;
 
@@ -381,6 +383,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         // lower bound value. Thus, we can use the previously computer lower bound value for slightly faster convergence.
 //
         scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), mecBounds.lowerBound()));
+        System.out.println("Precision is:"+targetPrecision);
         System.out.println("lower bound: "+ scaledBounds.lowerBound() + " upper bound: "+scaledBounds.upperBound());
         updateStayAction(mecIndex, scaledBounds);
 
@@ -721,7 +724,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         return bound;
 
     }
-//todo: normalisation for qp and SG Vi not proper(counter example takes time).
+
     private Bounds getBoundsByQP(Mec mec, double precision)
     {
         MecInformationProvider mecinfo = getMecInfoProvider(mec);
