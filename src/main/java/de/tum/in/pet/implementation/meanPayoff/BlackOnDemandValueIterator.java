@@ -383,8 +383,8 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         // lower bound value. Thus, we can use the previously computer lower bound value for slightly faster convergence.
 //
         scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), mecBounds.lowerBound()));
-        System.out.println("Precision is:"+targetPrecision);
-        System.out.println("lower bound: "+ scaledBounds.lowerBound() + " upper bound: "+scaledBounds.upperBound());
+//        System.out.println("Precision is:"+targetPrecision);
+//        System.out.println("lower bound: "+ scaledBounds.lowerBound() + " upper bound: "+scaledBounds.upperBound());
         updateStayAction(mecIndex, scaledBounds);
 
     }
