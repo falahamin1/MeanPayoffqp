@@ -79,7 +79,7 @@ public class StochasticGameVI {
                  IntSet actions = sg.getActionP1(player);
                  for (int action : actions)
                  {
-                     double reward = sg.getReward(player, action);
+                     double reward = sg.getRewardP1(player, action);
                      int player2 = sg.getP2Successor(player, action);
                      player2Rewards.put(player2,reward);
 
