@@ -93,6 +93,13 @@ if input_values.simulate_mec:
     for i in range(len(runConfigs)):
         runConfigs[i] += " --simulateMec " + input_values.simulate_mec
 
+if input_values.lower_bound:
+    for i in range(len(runConfigs)):
+        runConfigs[i] += " --lowerBound " + input_values.lower_bound
+
+if input_values.upper_bound:
+    for i in range(len(runConfigs)):
+        runConfigs[i] += " --upperBound " + input_values.upper_bound
 
 resultDir = input_values.output_directory + '/'
 if not os.path.exists(resultDir):

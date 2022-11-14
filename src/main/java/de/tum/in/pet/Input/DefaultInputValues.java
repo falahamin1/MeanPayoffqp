@@ -2,6 +2,8 @@ package de.tum.in.pet.Input;
 
 import de.tum.in.pet.implementation.meanPayoff.DeltaTCalculationMethod;
 import de.tum.in.pet.implementation.meanPayoff.SimulateMec;
+import de.tum.in.pet.implementation.qp_meanpayoff.LowerBound;
+import de.tum.in.pet.implementation.qp_meanpayoff.UpperBound;
 import de.tum.in.pet.implementation.reachability.UpdateMethod;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.probmodels.explorer.InformationLevel;
@@ -20,4 +22,8 @@ public class DefaultInputValues {
     public static final SimulateMec SIMULATE_MEC = SimulateMec.HEURISTIC;
     public static final String OUTPUT_PATH = "temp.txt";
     public static final DeltaTCalculationMethod DELTA_T_CALCULATION_METHOD = DeltaTCalculationMethod.P_MIN;
+
+    public static final LowerBound LOWER_BOUND = LowerBound.VI;
+
+    public static final UpperBound UPPER_BOUND = UpperBound.VI;
 }

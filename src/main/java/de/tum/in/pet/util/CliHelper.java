@@ -2,6 +2,8 @@ package de.tum.in.pet.util;
 
 import de.tum.in.pet.implementation.meanPayoff.DeltaTCalculationMethod;
 import de.tum.in.pet.implementation.meanPayoff.SimulateMec;
+import de.tum.in.pet.implementation.qp_meanpayoff.LowerBound;
+import de.tum.in.pet.implementation.qp_meanpayoff.UpperBound;
 import de.tum.in.pet.implementation.reachability.UpdateMethod;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import java.util.Arrays;
@@ -75,6 +77,40 @@ public final class CliHelper {
     }
     try {
       return UpdateMethod.valueOf(optionString);
+    } catch (IllegalArgumentException e) {
+      logger.log(Level.FINE, "Failed to parse information level", e);
+      String values = Arrays.stream(InformationLevel.values())
+              .map(Object::toString)
+              .collect(Collectors.joining(", "));
+      System.out.println("Unknown information level " + optionString + ". Possible values are: " + values);
+      System.exit(1);
+      throw new AssertionError(e);
+    }
+  }
+
+  public static LowerBound parseLowerBound(String optionString, LowerBound defaultValue) {
+    if (optionString == null) {
+      return defaultValue;
+    }
+    try {
+      return LowerBound.valueOf(optionString);
+    } catch (IllegalArgumentException e) {
+      logger.log(Level.FINE, "Failed to parse information level", e);
+      String values = Arrays.stream(InformationLevel.values())
+              .map(Object::toString)
+              .collect(Collectors.joining(", "));
+      System.out.println("Unknown information level " + optionString + ". Possible values are: " + values);
+      System.exit(1);
+      throw new AssertionError(e);
+    }
+  }
+
+  public static UpperBound parseUpperBound(String optionString, UpperBound defaultValue) {
+    if (optionString == null) {
+      return defaultValue;
+    }
+    try {
+      return UpperBound.valueOf(optionString);
     } catch (IllegalArgumentException e) {
       logger.log(Level.FINE, "Failed to parse information level", e);
       String values = Arrays.stream(InformationLevel.values())

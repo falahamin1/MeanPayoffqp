@@ -23,6 +23,7 @@ def get_exec_command_from_input():
         command += ' ' + inputOptions.deltat_method_option + ' ' + input_values.delta_t_method
     if input_values.is_ctmdp:
         command += ' ' + inputOptions.ctmdp_benchmarks_option
+
     return command
 
 

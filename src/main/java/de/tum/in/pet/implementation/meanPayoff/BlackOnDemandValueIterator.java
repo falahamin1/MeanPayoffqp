@@ -12,7 +12,6 @@ import de.tum.in.probmodels.explorer.Explorer;
 import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.Mec;
 import de.tum.in.probmodels.model.Distribution;
-import de.tum.in.probmodels.model.MarkovDecisionProcess;
 import de.tum.in.probmodels.model.Model;
 import gurobi.GRBException;
 import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
@@ -55,6 +54,10 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     private final boolean solveByQP;
     private final boolean solveBySG;
 
+    private final LowerBound lowerBound;
+
+    private final UpperBound upperBound;
+
     protected static final double initialNSamples = 1e4;
     protected static final double multiplicativeFactor = 5;
 
@@ -62,7 +65,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
                                       int revisitThreshold, double rMax, double pMin, double errorTolerance,
                                       Double2LongFunction nSampleFunction, double precision, long timeout,
                                       boolean getErrorProbability, SimulateMec simulateMec,
-                                      DeltaTCalculationMethod deltaTCalculationMethod, int maxSuccessorsInModel, boolean solveByQP, boolean solveBySG) {
+                                      DeltaTCalculationMethod deltaTCalculationMethod, int maxSuccessorsInModel, boolean solveByQP, boolean solveBySG, LowerBound lowerBound, UpperBound upperBound) {
         super(explorer, values, rewardGenerator, revisitThreshold, rMax, precision, timeout);
         this.pMin = pMin;
         this.errorTolerance = errorTolerance;
@@ -73,6 +76,9 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         this.maxSuccessorsInModel = maxSuccessorsInModel;
         this.solveByQP = solveByQP;
         this.solveBySG = solveBySG;
+        this.upperBound = upperBound;
+        this.lowerBound = lowerBound;
+
     }
 
     @Override
@@ -361,18 +367,18 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
         // lambda function that returns a state object when given the state index. required for accessing reward generator function.
         Bounds newBounds;
+        newBounds = getBounds(mec, targetPrecision);
 
-
-        if (solveByQP)
-        {
-            newBounds = getBoundsByQP(mec, targetPrecision);
-        } else if (solveBySG) {
-            newBounds = getBoundsBySG(mec, targetPrecision);
-
-        } else
-        {
-            newBounds = getBoundsByVI(mec, targetPrecision);
-        }
+//        if (solveByQP)
+//        {
+//            newBounds = getBoundsByQP(mec, targetPrecision);
+//        } else if (solveBySG) {
+//            newBounds = getBoundsBySG(mec, targetPrecision);
+//
+//        } else
+//        {
+//            newBounds = getBoundsByVI(mec, targetPrecision);
+//        }
 
 
 
@@ -386,6 +392,23 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 //        System.out.println("Precision is:"+targetPrecision);
 //        System.out.println("lower bound: "+ scaledBounds.lowerBound() + " upper bound: "+scaledBounds.upperBound());
         updateStayAction(mecIndex, scaledBounds);
+
+    }
+
+    private Bounds getBounds(Mec mec, double targetPrecision)
+    {
+        Bounds newbounds;
+        if (lowerBound == LowerBound.VI && upperBound == UpperBound.VI)
+            newbounds = getBoundsByVI(mec,targetPrecision);
+        else if (lowerBound == LowerBound.SGVI && upperBound == UpperBound.SGVI)
+            newbounds = getBoundsBySG(mec, targetPrecision);
+        else if (lowerBound == LowerBound.SGVI && upperBound == UpperBound.QP)
+            newbounds = getBoundsByQP(mec, targetPrecision);
+//        else if (lowerBound == LowerBound.SGL && upperBound == UpperBound.SGL)
+//            newbounds = getBoundsByLinearMethod(mec, targetPrecision);
+        else
+            newbounds = getBoundsByVI(mec, targetPrecision);
+        return newbounds;
 
     }
 
@@ -738,6 +761,8 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         Bounds bound = vi.getBounds();
         return Bounds.of(bound.lowerBound(), hbound);
     }
+
+
 
     private double rounded (double val)
     {

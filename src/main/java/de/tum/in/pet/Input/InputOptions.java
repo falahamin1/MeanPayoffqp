@@ -24,6 +24,10 @@ public class InputOptions {
     public static Option solveWithQP = new Option(null, "qp", false, "Solve using linear/quadratic programming");
 
     public static Option solveWithSG = new Option(null, "sg", false, "Solve by converting MEC to stochastic game and use VI");
+
+    public static Option lowerBoundOption = new Option(null, "lowerBound", true, "Method to get lower bound of an MEC (greybox/blackbox)");
+
+    public static Option upperBoundOption = new Option(null, "upperBound", true, "Method to get upper bound of an MEC (greybox/blackbox)");
     public static Option simulateMec = new Option(null, "simulateMec", true, "Algorithm for simulating MEC, before value iteration");
     public static Option outputFile = new Option("o", "outputPath", true, "Path to write the output");
     public static Option maxSuccessorOption = new Option(null, "maxSuccessors", true, "Maximum number of successors in model");
@@ -50,6 +54,8 @@ public class InputOptions {
                 .addOption(solveWithQP)
                 .addOption(solveWithSG)
                 .addOption(simulateMec)
+                .addOption(lowerBoundOption)
+                .addOption(upperBoundOption)
                 .addOption(outputFile)
                 .addOption(maxSuccessorOption)
                 .addOption(deltaTOption);

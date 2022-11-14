@@ -2,6 +2,8 @@ package de.tum.in.pet.Input;
 
 import de.tum.in.pet.implementation.meanPayoff.DeltaTCalculationMethod;
 import de.tum.in.pet.implementation.meanPayoff.SimulateMec;
+import de.tum.in.pet.implementation.qp_meanpayoff.LowerBound;
+import de.tum.in.pet.implementation.qp_meanpayoff.UpperBound;
 import de.tum.in.pet.implementation.reachability.UpdateMethod;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.util.CliHelper;
@@ -41,6 +43,12 @@ public class InputParser {
 
         boolean solveUsingSG = isOptionPresent(commandLine, InputOptions.solveWithSG);
 
+        LowerBound lowerBound = CliHelper.parseLowerBound(
+                commandLine.getOptionValue(InputOptions.lowerBoundOption.getLongOpt()), DefaultInputValues.LOWER_BOUND);
+
+        UpperBound upperBound = CliHelper.parseUpperBound(
+                commandLine.getOptionValue(InputOptions.upperBoundOption.getLongOpt()), DefaultInputValues.UPPER_BOUND);
+
         SimulateMec simulateMec = CliHelper.parseSimulateMec(
                 commandLine.getOptionValue(InputOptions.simulateMec.getLongOpt()), DefaultInputValues.SIMULATE_MEC);
 
@@ -66,6 +74,8 @@ public class InputParser {
                 rewardStructure,
                 solveUsingQP,
                 solveUsingSG,
+                lowerBound,
+                upperBound,
                 simulateMec,
                 outputPath,
                 maxSuccessorsInModel,

@@ -2,6 +2,8 @@ package de.tum.in.pet.Input;
 
 import de.tum.in.pet.implementation.meanPayoff.DeltaTCalculationMethod;
 import de.tum.in.pet.implementation.meanPayoff.SimulateMec;
+import de.tum.in.pet.implementation.qp_meanpayoff.LowerBound;
+import de.tum.in.pet.implementation.qp_meanpayoff.UpperBound;
 import de.tum.in.pet.implementation.reachability.UpdateMethod;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.probmodels.explorer.InformationLevel;
@@ -21,6 +23,10 @@ public class InputValues {
     public final String rewardStructure;
     public final boolean solveUsingQP;
     public final boolean solveUsingSG;
+
+    public final LowerBound lowerBound;
+
+    public final UpperBound upperBound;
     public final SimulateMec simulateMec;
     public final String outputPath;
     public final int maxSuccessorsInModel;
@@ -30,7 +36,7 @@ public class InputValues {
     public InputValues(double precision, int revisitThreshold, double maxReward, double pMin, double errorTolerance,
                        int iterSamples, long timeout, boolean getErrorProbability, SuccessorHeuristic successorHeuristic,
                        InformationLevel informationLevel, UpdateMethod updateMethod, String rewardStructure, boolean solveUsingQP,
-                       boolean solveUsingSG, SimulateMec simulateMec, String outputPath, int maxSuccessorsInModel, DeltaTCalculationMethod deltaTCalculationMethod) {
+                       boolean solveUsingSG,LowerBound lowerBound,UpperBound upperBound, SimulateMec simulateMec, String outputPath, int maxSuccessorsInModel, DeltaTCalculationMethod deltaTCalculationMethod) {
         this.precision = precision;
         this.revisitThreshold = revisitThreshold;
         this.maxReward = maxReward;
@@ -45,6 +51,8 @@ public class InputValues {
         this.rewardStructure = rewardStructure;
         this.solveUsingQP = solveUsingQP;
         this.solveUsingSG = solveUsingSG;
+        this.lowerBound = lowerBound;
+        this.upperBound = upperBound;
         this.simulateMec = simulateMec;
         this.outputPath = outputPath;
         this.maxSuccessorsInModel = maxSuccessorsInModel;
