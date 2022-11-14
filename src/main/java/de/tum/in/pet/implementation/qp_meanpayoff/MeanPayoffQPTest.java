@@ -48,6 +48,10 @@ public class MeanPayoffQPTest {
             public double provideConfidenceWidth(int state, int action) {
                 return 0.1;
             }
+
+            public double provideTwoSidedConfidenceWidth(int state, int action) {
+                return 0.1;
+            }
         };
     }
 
@@ -76,6 +80,10 @@ public class MeanPayoffQPTest {
 
             @Override
             public double provideConfidenceWidth(int state, int action) {
+                return 0.1;
+            }
+
+            public double provideTwoSidedConfidenceWidth(int state, int action) {
                 return 0.1;
             }
         };
