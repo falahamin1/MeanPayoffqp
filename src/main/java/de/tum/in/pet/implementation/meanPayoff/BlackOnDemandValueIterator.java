@@ -334,7 +334,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
         double currPrecision = mecBounds.difference();
 
-        double targetPrecision = currPrecision / 2;
+        double targetPrecision = currPrecision * this.rMax / 2;
 
         if (currPrecision < this.precision / 2) {
             return;
