@@ -9,4 +9,6 @@ public interface MecInformationProvider {
     IntSet provideActions(int state);
     Distribution provideDistribution(int state, int action);
     double provideConfidenceWidth(int state, int action);
+
+    double provideTwoSidedConfidenceWidth(int state, int action);
 }

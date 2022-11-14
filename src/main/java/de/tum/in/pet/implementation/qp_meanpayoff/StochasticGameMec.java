@@ -2,6 +2,8 @@ package de.tum.in.pet.implementation.qp_meanpayoff;
 
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
+import de.tum.in.pet.implementation.qp_meanpayoff.LPRewardProvider;
+import de.tum.in.pet.implementation.qp_meanpayoff.MecInformationProvider;
 import de.tum.in.probmodels.model.Distribution;
 import it.unimi.dsi.fastutil.ints.*;
 //This class is used to create a stochastic game from a given MEC. Player 1 chooses the actions
@@ -14,14 +16,24 @@ public class StochasticGameMec {
     private final NatBitSet Player2; //Player 2 states, the states are named in such a way that, an action 2 from player1
     //  state 1 would lead to Player2 state 12.
 
+    private Int2DoubleMap Player2rewards; // Maps the reward obtained from each player2 state
+
     private final Int2ObjectMap<IntSet> get_actions_p1; //Player 1 actions,
+
+//    private final Int2ObjectMap<IntSet> get_unique_actions_p1; // Player 1 actions with unique name
+
     private final Int2ObjectMap<Int2IntMap> get_successor_p2; //gets the Player 2 state from Player 1 state and action
 
+    //    private final Int2ObjectMap<GameDistribution> p1_action_dist;// Transitions and distribution of an action
     private final Int2ObjectMap<IntSet> get_actions_p2; // Player 2 actions
     private final Int2ObjectMap<GameDistribution> p2_action_dist;// Transitions and distribution of a
     private int Player_2_state_count; //keeps track of the number of Player 2 states
     private final MecInformationProvider mecInfoProvider;
     private int Player_2_action_count ;// keeps track of action counts in the addDistribution function
+
+//    private int Player_1_action_count; //keeps track of player 1 action counts
+//    //for unique action number
+
     private final double pMin;
 
     private final LPRewardProvider rewardProvider;
@@ -34,7 +46,7 @@ public class StochasticGameMec {
         this.enableLog = enableLog;
         this.Player1 = states;
         get_actions_p1 = new Int2ObjectOpenHashMap<>();
-        Player_2_state_count = 0;
+        Player_2_state_count = Player1.lastInt();
         Player2 = NatBitSets.ensureModifiable(NatBitSets.simpleSet());
         get_successor_p2 = new Int2ObjectOpenHashMap<>();
         get_actions_p2 = new Int2ObjectOpenHashMap<>();
@@ -42,13 +54,15 @@ public class StochasticGameMec {
         this.pMin = pMin;
         Player_2_action_count = 0;
         this.rewardProvider = rewardProvider;
+        this.Player2rewards = new Int2DoubleOpenHashMap();
     }
 
-    public void createSG() {
-        getP1P2Information();
+    //This functions creates the blown up stochastic game by linear or exponential blow up
+    public void createSG(boolean ifbylinearblowup) {
+        getP1P2Information(ifbylinearblowup);
     }
     //For each state action pair of the MDP we add a player 2 state and then add actions for those states
-    private void getP1P2Information(){
+    private void getP1P2Information(boolean ifbylinearblowup){
         for (int p1_state : Player1)
         {
             IntSet actions = mecInfoProvider.provideActions(p1_state);
@@ -59,8 +73,12 @@ public class StochasticGameMec {
                 Player_2_state_count ++;
                 int p2state = Player_2_state_count;
                 Player2.set(p2state);
+                Player2rewards.put(p2state, getRewardP1(p1_state,action));
                 p1ActionsToP2Successor.put(action, p2state);
-                addP2Actions(p1_state, p2state , action);
+                if (ifbylinearblowup)
+                    addP2ActionsLinear(p1_state, p2state, action);
+                else
+                    addP2Actions(p1_state, p2state , action);
 
             }
             get_successor_p2.put(p1_state, p1ActionsToP2Successor);
@@ -69,9 +87,58 @@ public class StochasticGameMec {
 
     }
 
-    /** Each action is probability distribution where the probabilities are in the interval of
-    sampled probability +- width .
-     **/
+    //This function add the actions to player 2 states where the number of actions added
+    // are linear to the number of transitions
+    private void addP2ActionsLinear(int p1_state,int p2_state, int p1_action)
+    {
+        Distribution dist = mecInfoProvider.provideDistribution(p1_state, p1_action);
+        double confwidth = mecInfoProvider.provideConfidenceWidth(p1_state, p1_action);
+        confwidth = rounded(confwidth);
+        int successor_size  = dist.size();
+        int [] successor_states = new int[successor_size];
+        double [] estimated_probs = new double[successor_size];
+        double [] lower_bounds = new double[successor_size];
+        int i =0 ;
+        double sum = 0;
+        for (Int2DoubleMap.Entry entry : dist)
+        {
+            double probability = entry.getDoubleValue();
+            probability = rounded(probability);
+            estimated_probs[i] = probability;
+            successor_states[i] = entry.getIntKey();
+            lower_bounds[i] = rounded(Math.max(probability-confwidth,pMin));
+            sum += lower_bounds[i];
+            i++;
+        }
+        if(confwidth == 0)
+        {
+            addp2action(p2_state, successor_states, estimated_probs);
+        }
+        else
+        {
+            for (i = 0 ; i< estimated_probs.length; i++)
+            {
+                addProbabilityDistributionsLinear (p2_state,lower_bounds, successor_states, i, estimated_probs.length, sum);
+            }
+
+        }
+
+
+
+    }
+    // Add the probability distributions which satisfies all the conditions
+    private void addProbabilityDistributionsLinear(int p2state, double[] lower_bounds, int[] successor_states, int same, int size, double sum)
+    {
+        double [] probabilities = new double [successor_states.length];
+        System.arraycopy(lower_bounds, 0, probabilities, 0, size);
+        probabilities[same] = rounded(probabilities[same] + 1 - sum);
+        addp2action(p2state, successor_states, probabilities);
+
+    }
+
+
+    // Each action is probability distribution where the probabilities are in the interval of
+    // sampled probability +- width .
     private void addP2Actions(int p1_state,int p2_state, int p1_action)
     {
         Distribution dist = mecInfoProvider.provideDistribution(p1_state, p1_action);
@@ -109,18 +176,7 @@ public class StochasticGameMec {
 
 
     }
-
-    /** Add the probability distributions which satisfies all the conditions
-     * Recursively adds the edge probabilities.
-     * @param p2state
-     * @param estimated_probs
-     * @param upper_bounds
-     * @param lower_bounds
-     * @param successor_states
-     * @param same
-     * @param filled
-     * @param size
-     */
+    // Add the probability distributions which satisfies all the conditions
     private void addProbabilityDistributions(int p2state, double[] estimated_probs, double[] upper_bounds, double[] lower_bounds, int[] successor_states, int same, int filled, int size)
     {
         if ( filled == size)
@@ -178,12 +234,7 @@ public class StochasticGameMec {
 
     }
 
-    /** The given probability distribution satisfying all the conditions is added as a Player2 action
-     *
-     * @param p2state
-     * @param successor_states
-     * @param probabilities
-     */
+    // The given probability distribution satisfying all the conditions is added as a Player2 action
     private void addp2action(int p2state, int[] successor_states , double[] probabilities)
     {
         Player_2_action_count++;
@@ -198,7 +249,6 @@ public class StochasticGameMec {
             IntSet action = get_actions_p2.get(p2state);
             action.add(Player_2_action_count);
             get_actions_p2.put(p2state,action);
-//            action = get_actions_p2.get(p2state);
         }
         GameDistribution gd = new GameDistribution(probabilities, successor_states, Player_2_action_count);
         p2_action_dist.put(Player_2_action_count, gd);
@@ -206,11 +256,7 @@ public class StochasticGameMec {
 
     }
 
-    /** Rounds to 4 decimal places
-     *
-     * @param val
-     * @return
-     */
+    // Rounds to 4 decimal places
     private double rounded (double val)
     {
         double round_val = Math.round(val * 10000.0) / 10000.0;
@@ -244,13 +290,18 @@ public class StochasticGameMec {
         return gd;
     }
 
-    public double getReward (int state , int action)
+    public double getRewardP1(int state , int action)
     {
         double transitionReward = rewardProvider.transitionReward(state, action, null);
         double stateReward= rewardProvider.stateReward(state);
         double return_val = rounded(transitionReward + stateReward);
         return return_val;
 
+    }
+
+    public double getRewardP2(int state)
+    {
+        return Player2rewards.get(state);
     }
 
     public NatBitSet player1()
@@ -273,6 +324,31 @@ public class StochasticGameMec {
 
     public int getP2Successor(int state, int action)
     {return  get_successor_p2.get(state).get(action);}
+
+    public void printstates()
+    {
+        System.out.println("Player 1 states:");
+        for (int state : Player1)
+        {
+            System.out.print(state+" ");
+        }
+
+        System.out.println("Player 2 states: ");
+        for(int state : Player2)
+        {
+            System.out.print(state + " ");
+        }
+    }
+
+    public void addPlayer1Actions(Int2ObjectMap<Int2DoubleMap> xa_values)
+    {
+        for (int state : Player1)
+        {
+            IntSet actions = getActionP1(state);
+            Int2DoubleMap actionsValues = xa_values.get(state);
+        }
+    }
+
 
 
 

@@ -16,7 +16,8 @@ public class MecMeanPayoffQP {
     private GRBModel model;
     private double pMin;
 
-    private Int2ObjectMap<Int2DoubleMap> xa_values;
+
+    private Int2ObjectMap<Int2DoubleMap> final_values;
 
     // For every transition, there is a gurobi variable
     private Int2ObjectMap<Int2ObjectMap<GRBVar[]>> t;
@@ -29,7 +30,7 @@ public class MecMeanPayoffQP {
         this.rewardProvider = rewardProvider;
         this.enableLog = enableLog;
         this.pMin = pMin;
-        this.xa_values = new Int2ObjectOpenHashMap<>();
+        this.final_values = new Int2ObjectOpenHashMap<>();
     }
 
     public double solveForMeanPayoff() throws GRBException {
@@ -39,8 +40,8 @@ public class MecMeanPayoffQP {
         writeLPConstraints();
         setObjectiveFunction();
         double value = optimizeModel();
-//        xa_values = getStrategyValues();
-//        double [] strategy_values = getStrategyValues();
+//       xa_values = getStrategyValues();
+        getStrategyValues();
         disposeGurobiModel();
         disposeGurobiEnv();
         if (enableLog) {
@@ -139,7 +140,7 @@ public class MecMeanPayoffQP {
 
     private void addTransitionProbabilityConstraints(int state, int action, Int2ObjectMap<GRBQuadExpr> lhs_exprs) throws GRBException {
         Distribution distribution = mecInfoProvider.provideDistribution(state, action);
-        double confidenceWidth = rounded(mecInfoProvider.provideConfidenceWidth(state, action));
+        double confidenceWidth = rounded(mecInfoProvider.provideTwoSidedConfidenceWidth(state, action));
 //        System.out.println("Width is 2: "+confidenceWidth);
         GRBLinExpr lhs_sumToOneConstraint = new GRBLinExpr();
 
@@ -263,28 +264,40 @@ public class MecMeanPayoffQP {
         double round_val = Math.round(val * 10000.0) / 10000.0;
         return round_val;
     }
-    private Int2ObjectMap<Int2DoubleMap> getStrategyValues() throws GRBException
+    private void getStrategyValues() throws GRBException //Adds the xa_values obtainned using qp to the variable final
+    //final_values.
     {
-        Int2ObjectMap<Int2DoubleMap> xa_values = new Int2ObjectOpenHashMap<>();
+//        Int2ObjectMap<Int2DoubleMap> xa_values = new Int2ObjectOpenHashMap<>();
         NatBitSet states = mecInfoProvider.provideStates();
         for(int state : states)
         {
             Int2DoubleMap actionset = new Int2DoubleOpenHashMap();
             IntSet actions = mecInfoProvider.provideActions(state);
+            double sum = 0.0;
             for(int action : actions)
             {
                 GRBVar v = x_a.get(state).get(action);
                 double value = v.get(GRB.DoubleAttr.X);
-                actionset.put(action, value);
-                System.out.println(value);
+//                System.out.println("Value is :"+ value + " state "+ state + " action " + action);
+                sum += value;
             }
-            xa_values.put(state, actionset);
+            if (sum == 0)
+            {sum = 1;}
+
+            for(int action : actions)
+            {
+                GRBVar v = x_a.get(state).get(action);
+                double value = v.get(GRB.DoubleAttr.X);
+                actionset.put(action, value/sum);
+//                System.out.println(value/sum);
+            }
+            final_values.put(state, actionset);
         }
-        return xa_values;
     }
 
     public Int2ObjectMap<Int2DoubleMap> getFinalValues ()
     {
-        return xa_values;
+        return final_values;
     }
+
 }

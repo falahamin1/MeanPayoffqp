@@ -404,8 +404,8 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             newbounds = getBoundsBySG(mec, targetPrecision);
         else if (lowerBound == LowerBound.SGVI && upperBound == UpperBound.QP)
             newbounds = getBoundsByQP(mec, targetPrecision);
-//        else if (lowerBound == LowerBound.SGL && upperBound == UpperBound.SGL)
-//            newbounds = getBoundsByLinearMethod(mec, targetPrecision);
+        else if (lowerBound == LowerBound.SGL && upperBound == UpperBound.QP)
+            newbounds = getBoundsByLinearMethod(mec, targetPrecision);
         else
             newbounds = getBoundsByVI(mec, targetPrecision);
         return newbounds;
@@ -693,6 +693,10 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
                 ? Math.sqrt(-Math.log(transDelta) / (2 * explorer.getActionCounts(x, y)))
                 : 0);
 
+        Int2ObjectFunction<Int2DoubleFunction> confidenceDoubleWidthFunction = x -> (y -> y < explorer.getChoices(x).size()
+                ? Math.sqrt(-Math.log(transDelta/2) / (2 * explorer.getActionCounts(x, y)))
+                : 0);
+
         return new MecInformationProvider() {
             @Override
             public NatBitSet provideStates() {
@@ -712,6 +716,11 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             @Override
             public double provideConfidenceWidth(int state, int action) {
                 return confidenceWidthFunction.apply(state).apply(action);
+            }
+
+            public double provideTwoSidedConfidenceWidth(int state, int action)
+            {
+                return confidenceDoubleWidthFunction.apply(state).apply(action);
             }
         };
     }
@@ -740,7 +749,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         LPRewardProvider rewardProvider = getLPRewardProvider();
         NatBitSet mecStates = mecinfo.provideStates();
         StochasticGameMec sg = new StochasticGameMec(mecStates, mecinfo, false, pMin, rewardProvider);
-        sg.createSG();
+        sg.createSG(false);
         StochasticGameVI vi = new StochasticGameVI(sg,0.8, timeout);
         vi.SolveSG(precision/2, rMax);
         Bounds bound = vi.getBounds();
@@ -754,12 +763,38 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         LPRewardProvider rewardProvider = getLPRewardProvider();
         NatBitSet mecStates = mecinfo.provideStates();
         StochasticGameMec sg = new StochasticGameMec(mecStates, mecinfo, false, pMin, rewardProvider);
-        sg.createSG();
+        sg.createSG(false);
         StochasticGameVI vi = new StochasticGameVI(sg,0.8, timeout);
         vi.SolveSG(precision/2, rMax);
         double hbound = rounded(getMecValueByQP(mec));
         Bounds bound = vi.getBounds();
         return Bounds.of(bound.lowerBound(), hbound);
+    }
+
+    private Bounds getBoundsByLinearMethod(Mec mec, double precision)
+    {
+        MecInformationProvider mecinfo = getMecInfoProvider(mec);
+        LPRewardProvider rewardProvider = getLPRewardProvider();
+        NatBitSet mecStates = mecinfo.provideStates();
+        MecMeanPayoffQP qp = new MecMeanPayoffQP(mecinfo, rewardProvider,pMin , false);
+        double upperBound, lowerBound;
+        Int2ObjectMap<Int2DoubleMap> xa_values;
+        try {
+            upperBound = qp.solveForMeanPayoff();
+            xa_values = qp.getFinalValues();
+        } catch (GRBException e) {
+            throw new RuntimeException(e);
+        }
+        StochasticGameMec sg = new StochasticGameMec(mecStates, mecinfo, false, pMin, rewardProvider);
+        sg.createSG(true);
+        StochasticGameLPForLowerBound sglb = new StochasticGameLPForLowerBound(sg, xa_values, false);
+
+        try {
+            lowerBound = sglb.solveForMeanPayoff();
+        } catch (GRBException e) {
+            throw new RuntimeException(e);
+        }
+        return Bounds.of(rounded(lowerBound), rounded(upperBound));
     }
 
 
