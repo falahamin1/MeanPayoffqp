@@ -142,7 +142,7 @@ public class StochasticGameMec {
     private void addP2Actions(int p1_state,int p2_state, int p1_action)
     {
         Distribution dist = mecInfoProvider.provideDistribution(p1_state, p1_action);
-        double confwidth = mecInfoProvider.provideConfidenceWidth(p1_state, p1_action);
+        double confwidth = mecInfoProvider.provideTwoSidedConfidenceWidth(p1_state, p1_action);
         confwidth = rounded(confwidth);
         int successor_size  = dist.size();
         int [] successor_states = new int[successor_size];

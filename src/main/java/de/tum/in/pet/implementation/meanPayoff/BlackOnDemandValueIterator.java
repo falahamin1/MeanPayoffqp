@@ -670,11 +670,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     }
 
     private double getMecValueByQP(Mec mec) {
-//        BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) this.explorer;
-//        NatBitSet mecStates = mecs.get(mecIndex);
-//
-//        Mec mec = Mec.create(explorer.model(), mecStates);
-//        System.out.println("QP check");
         MecInformationProvider mecInformation = getMecInfoProvider(mec);
         LPRewardProvider rewardInformation = getLPRewardProvider();
         MecMeanPayoffQP qp = new MecMeanPayoffQP(mecInformation, rewardInformation,pMin , false);
