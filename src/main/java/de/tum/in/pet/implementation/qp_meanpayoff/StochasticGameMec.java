@@ -88,7 +88,8 @@ public class StochasticGameMec {
     }
 
     //This function add the actions to player 2 states where the number of actions added
-    // are linear to the number of transitions
+    // are linear to the number of transitions, here the confidence width is single sided
+    // ie, the upper bound is 1.
     private void addP2ActionsLinear(int p1_state,int p2_state, int p1_action)
     {
         Distribution dist = mecInfoProvider.provideDistribution(p1_state, p1_action);

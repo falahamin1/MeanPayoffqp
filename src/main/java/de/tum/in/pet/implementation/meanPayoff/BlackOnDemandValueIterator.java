@@ -402,10 +402,14 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             newbounds = getBoundsByVI(mec,targetPrecision);
         else if (lowerBound == LowerBound.SGVI && upperBound == UpperBound.SGVI)
             newbounds = getBoundsBySG(mec, targetPrecision);
-        else if (lowerBound == LowerBound.SGVI && upperBound == UpperBound.QP)
+        else if (lowerBound == LowerBound.SGVI && upperBound == UpperBound.QP)   //We are mot using this method
             newbounds = getBoundsByQP(mec, targetPrecision);
         else if (lowerBound == LowerBound.SGL && upperBound == UpperBound.QP)
-            newbounds = getBoundsByLinearMethod(mec, targetPrecision);
+            newbounds = getBoundsByLinearMethodQP(mec, targetPrecision);
+        else if (lowerBound == LowerBound.SGEXP && upperBound == UpperBound.QP)
+            newbounds = getBoundsByExponentialMethodQP(mec, targetPrecision);
+        else if (lowerBound == LowerBound.SGEXP && upperBound == UpperBound.SGEXP)
+            newbounds = getBoundsByExponentialMethodQP(mec, targetPrecision);
         else
             newbounds = getBoundsByVI(mec, targetPrecision);
         return newbounds;
@@ -766,7 +770,11 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         return Bounds.of(bound.lowerBound(), hbound);
     }
 
-    private Bounds getBoundsByLinearMethod(Mec mec, double precision)
+    /*Uses QP on the MDP for upper bound and fixes the strategy for the
+    * Player 1 states in the blown up MDP(linear blowup). We use LP on the blown up MDP to
+    * get the lower bound.
+    *  */
+    private Bounds getBoundsByLinearMethodQP(Mec mec, double precision)
     {
         MecInformationProvider mecinfo = getMecInfoProvider(mec);
         LPRewardProvider rewardProvider = getLPRewardProvider();
@@ -782,6 +790,36 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         }
         StochasticGameMec sg = new StochasticGameMec(mecStates, mecinfo, false, pMin, rewardProvider);
         sg.createSG(true);
+        StochasticGameLPForLowerBound sglb = new StochasticGameLPForLowerBound(sg, xa_values, false);
+
+        try {
+            lowerBound = sglb.solveForMeanPayoff();
+        } catch (GRBException e) {
+            throw new RuntimeException(e);
+        }
+        return Bounds.of(rounded(lowerBound), rounded(upperBound));
+    }
+
+    /*Uses QP on the MDP for upper bound and fixes the strategy for the
+     * Player 1 states in the blown up MDP(exponential blow up). We use LP on the blown up MDP to
+     * get the lower bound.
+     *  */
+    private Bounds getBoundsByExponentialMethodQP(Mec mec, double precision)
+    {
+        MecInformationProvider mecinfo = getMecInfoProvider(mec);
+        LPRewardProvider rewardProvider = getLPRewardProvider();
+        NatBitSet mecStates = mecinfo.provideStates();
+        MecMeanPayoffQP qp = new MecMeanPayoffQP(mecinfo, rewardProvider,pMin , false);
+        double upperBound, lowerBound;
+        Int2ObjectMap<Int2DoubleMap> xa_values;
+        try {
+            upperBound = qp.solveForMeanPayoff();
+            xa_values = qp.getFinalValues();
+        } catch (GRBException e) {
+            throw new RuntimeException(e);
+        }
+        StochasticGameMec sg = new StochasticGameMec(mecStates, mecinfo, false, pMin, rewardProvider);
+        sg.createSG(false);
         StochasticGameLPForLowerBound sglb = new StochasticGameLPForLowerBound(sg, xa_values, false);
 
         try {
