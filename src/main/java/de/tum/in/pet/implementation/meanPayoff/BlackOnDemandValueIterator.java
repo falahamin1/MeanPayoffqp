@@ -409,7 +409,9 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         else if (lowerBound == LowerBound.SGEXP && upperBound == UpperBound.QP)
             newbounds = getBoundsByExponentialMethodQP(mec, targetPrecision);
         else if (lowerBound == LowerBound.SGEXP && upperBound == UpperBound.SGEXP)
-            newbounds = getBoundsByExponentialMethodQP(mec, targetPrecision);
+            newbounds = getBoundsByExponentialMethod(mec, targetPrecision);
+        else if (lowerBound == LowerBound.SGL && upperBound == UpperBound.SGL)
+            newbounds = getBoundsByLinearMethod(mec, targetPrecision);
         else
             newbounds = getBoundsByVI(mec, targetPrecision);
         return newbounds;
@@ -828,6 +830,50 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             throw new RuntimeException(e);
         }
         return Bounds.of(rounded(lowerBound), rounded(upperBound));
+    }
+
+    private Bounds getBoundsByExponentialMethod(Mec mec, double precision)
+    {
+        MecInformationProvider mecinfo = getMecInfoProvider(mec);
+        LPRewardProvider rewardProvider = getLPRewardProvider();
+        NatBitSet mecStates = mecinfo.provideStates();
+        StochasticGameMec sg = new StochasticGameMec(mecStates, mecinfo, false, pMin, rewardProvider);
+        sg.createSG(false);
+        StochasticGameLP lp = new StochasticGameLP(sg,false);
+        Int2ObjectMap<Int2DoubleMap> xa_values;
+        double resulthbound;
+        double resultlbound;
+        try {
+            resulthbound = rounded(lp.solveForMeanPayoff());
+            xa_values = lp.getFinalValues();
+            StochasticGameLPForLowerBound sgl = new StochasticGameLPForLowerBound(sg, xa_values, false);
+            resultlbound = rounded(sgl.solveForMeanPayoff());
+        } catch (GRBException e) {
+            throw new RuntimeException(e);
+        }
+        return Bounds.of(resultlbound,resulthbound);
+    }
+
+    private Bounds getBoundsByLinearMethod(Mec mec, double precision)
+    {
+        MecInformationProvider mecinfo = getMecInfoProvider(mec);
+        LPRewardProvider rewardProvider = getLPRewardProvider();
+        NatBitSet mecStates = mecinfo.provideStates();
+        StochasticGameMec sg = new StochasticGameMec(mecStates, mecinfo, false, pMin, rewardProvider);
+        sg.createSG(true);
+        StochasticGameLP lp = new StochasticGameLP(sg,false);
+        Int2ObjectMap<Int2DoubleMap> xa_values;
+        double resulthbound;
+        double resultlbound;
+        try {
+            resulthbound = rounded(lp.solveForMeanPayoff());
+            xa_values = lp.getFinalValues();
+            StochasticGameLPForLowerBound sgl = new StochasticGameLPForLowerBound(sg, xa_values, false);
+            resultlbound = rounded(sgl.solveForMeanPayoff());
+        } catch (GRBException e) {
+            throw new RuntimeException(e);
+        }
+        return Bounds.of(resultlbound,resulthbound);
     }
 
 
