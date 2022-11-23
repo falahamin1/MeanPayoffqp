@@ -42,8 +42,8 @@ information_level_choices = [white_box_value, black_box_value, grey_box_value]
 update_method_choices = [black_box_value, grey_box_value, update_method_both]
 simulate_mec_choices = [simulate_mec_standard, simulate_mec_cheat, simulate_mec_heuristic]
 deltat_method_choices = [deltat_method_p_min, deltat_method_max_successors]
-lower_bound_choices = ["VI", "SGVI", "SGEXP", "SGL"]
-upper_bound_choices = ["VI", "SGVI", "QP", "SGEXP", "SGL"]
+lower_bound_choices = ["VI", "SGVI", "SGEXP", "SGL", "NEWVI"]
+upper_bound_choices = ["VI", "SGVI", "QP", "SGEXP", "SGL", "NEWVI"]
 
 
 def add_basic_input_options(parser):

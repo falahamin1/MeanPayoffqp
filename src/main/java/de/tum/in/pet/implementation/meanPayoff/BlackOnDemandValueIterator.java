@@ -412,7 +412,11 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             newbounds = getBoundsByExponentialMethod(mec, targetPrecision);
         else if (lowerBound == LowerBound.SGL && upperBound == UpperBound.SGL)
             newbounds = getBoundsByLinearMethod(mec, targetPrecision);
-        else
+        else if (lowerBound == LowerBound.NEWVI && upperBound ==  upperBound.NEWVI) {
+            newbounds = getBoundsByNEWVI(mec, targetPrecision);
+
+
+        } else
             newbounds = getBoundsByVI(mec, targetPrecision);
         return newbounds;
 
@@ -433,6 +437,20 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
         valueIterator.run();
 
+        return valueIterator.getBounds();
+    }
+
+    private Bounds getBoundsByNEWVI(Mec mec, double targetPrecision)
+    {
+        BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) this.explorer;
+        Int2ObjectFunction<S> stateIndexMap = explorer::getState;
+
+        RestrictedMecBoundedValueIterator<S> valueIterator = new RestrictedMecBoundedValueIterator<>(mec, targetPrecision / 2,
+                rewardGenerator, stateIndexMap, rMax, timeout);
+        valueIterator.setConfidenceWidthFunction(x -> (y -> Math.sqrt(-Math.log(transDelta/2) / (2 * explorer.getActionCounts(x, y)))));
+        valueIterator.setDistributionFunction(x -> y -> this.explorer.model().getChoice(x, y));
+        valueIterator.setLabelFunction(x -> y -> this.explorer.model().getActions(x).get(y).label());
+        valueIterator.runNewVI();
         return valueIterator.getBounds();
     }
 
