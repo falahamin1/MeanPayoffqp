@@ -295,10 +295,9 @@ public class RestrictedMecBoundedValueIterator<S> {
       {
         double min = Double.MAX_VALUE;
         int minstate = 0;
-//      System.out.println("Values of i:");
+
         for(int i : temp)
         {
-          System.out.println(i);
           if(min >= values.get(i))
           {
             minstate = i;
@@ -306,9 +305,7 @@ public class RestrictedMecBoundedValueIterator<S> {
           }
         }
         temp.remove(minstate);
-//      System.out.println("Min state is : "+ minstate);
         double probound = remainingProbabilites.get(minstate);
-//      System.out.println("Remaining probability: " + remprob + " Space present: "+ probound );
         if(remprob<= probound)
         {
           sum += remprob*this.aperidocityConstant*min;
