@@ -1,5 +1,7 @@
 package de.tum.in.pet.implementation.reachability;
 
+import de.tum.in.naturals.set.NatBitSet;
+import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.util.SampleUtil;
 import de.tum.in.pet.values.Bounds;
@@ -15,12 +17,14 @@ import java.util.function.ToDoubleFunction;
 import static de.tum.in.probmodels.util.Util.isOne;
 import static de.tum.in.probmodels.util.Util.isZero;
 
-public class BlackUnboundedReachValues extends UnboundedReachValues{
+public class BlackUnboundedReachValues extends UnboundedReachValues {
 
   private final UpdateMethod updateMethod;
 
   // Returns the confidence width for a state x and it's corresponding action index y
   private Int2ObjectFunction<Int2DoubleFunction> confidenceWidthFunction = x -> (y -> (0));
+
+  private Int2ObjectFunction<Int2DoubleFunction> twoSidedConfidenceWidthFunction = x -> (y -> (0));
 
   private Int2ObjectMap<Bounds> oldBounds;
 
@@ -33,8 +37,16 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
   /**
    * Setter for confidenceWidthFunction.
    */
-  public void setConfidenceWidthFunction(Int2ObjectFunction<Int2DoubleFunction> confidenceWidthFunction){
+  public void setConfidenceWidthFunction(Int2ObjectFunction<Int2DoubleFunction> confidenceWidthFunction) {
     this.confidenceWidthFunction = confidenceWidthFunction;
+  }
+
+  /**
+   * Setter for  twoSidedConfidenceWidthFunction.
+   */
+  public void setTwoSidedConfidenceWidthFunction(Int2ObjectFunction<Int2DoubleFunction> twoSidedConfidenceWidthFunction)
+  {
+    this.twoSidedConfidenceWidthFunction =  twoSidedConfidenceWidthFunction;
   }
 
   public void resetConfidenceWidthFunction(){
@@ -124,6 +136,126 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
       maxUpper = 1;
     }
     return Bounds.reach(lower+remProb*minLower, upper+remProb*maxUpper);
+  }
+  /**
+   * Returns the bounds of an action according to the new Bellman equations in the CAV'23 paper.
+   * @param state: originating state. If the distribution is void, the bounds of state are returned.
+   * @param distribution: The probability distribution for sampling the next successor for an action.
+   * @param confidenceWidth: The 2-sided confidence width for a state-action pair.
+   * @return Bounds of an action from a state with some confidence width.
+   */
+  private Bounds successorBoundsNew(int state, Distribution distribution, double confidenceWidth) {
+    if (distribution.support().size()==0){
+      return Bounds.reachUnknown();
+    }
+    double lower = 0.0d;
+    double upper = 0.0d;
+    double sum = 0.0d;
+    double minLower = 1;
+    double maxUpper = 0;
+    Int2DoubleMap lowerBoundMapping = new Int2DoubleOpenHashMap();
+    Int2DoubleMap upperBoundMapping = new Int2DoubleOpenHashMap();
+    Int2DoubleMap probabilityMapping = new Int2DoubleOpenHashMap();
+    NatBitSet successors = NatBitSets.ensureModifiable(NatBitSets.simpleSet());
+    for (Int2DoubleMap.Entry entry : distribution) {
+      int successor = entry.getIntKey();
+      successors.add(successor);
+      Bounds successorBounds = bounds(successor);
+      double probability = Math.max(0, entry.getDoubleValue()-confidenceWidth);
+      double uprobability = Math.min(1, entry.getDoubleValue() + confidenceWidth);
+      sum += probability;
+      lowerBoundMapping.put(successor, successorBounds.lowerBound());
+      upperBoundMapping.put(successor, successorBounds.upperBound());
+      probabilityMapping.put(successor, uprobability - probability);
+      lower += successorBounds.lowerBound() * probability;
+      upper += successorBounds.upperBound() * probability;
+      minLower = Math.min(minLower, successorBounds.lowerBound());
+      maxUpper = Math.max(maxUpper, successorBounds.upperBound());
+    }
+
+//  If the confidence width is very high, then all the successor probabilities (T_HAT) of state, Distribution will be 0.
+//  Hence, sum will be 0. In that case, we don't return the successor bounds. We just return the bounds of the state
+//  itself. This is because, bounds of the incoming state will anyways be larger than the successorBounds, since it is
+//  a predecessor.
+    if (sum == 0.0d) {
+      // If there is no return statement here, and the sum is 0, then minLower, maxUpper will be returned.
+      // Sum is 0, because we have visited this transition very few times. So returning the minLower, maxUpper
+      // of successor might be bad, since it may be wrong. Some actions of successor, might not even be explored.
+      return bounds(state);
+    }
+    double remProb = 1-sum;
+    if(doMostConservativeGuess(state, distribution)) {
+      minLower = 0;
+      maxUpper = 1;
+    }
+    lower += addRemainingProbabilities(lowerBoundMapping, probabilityMapping, remProb, successors, true );
+    upper += addRemainingProbabilities(upperBoundMapping, probabilityMapping, remProb, successors, false );
+    return Bounds.reach(lower+remProb*minLower, upper+remProb*maxUpper);
+  }
+
+  /** Adds the remaining probabilities according to the new Bellman equations introduced **/
+  private  double addRemainingProbabilities(Int2DoubleMap values, Int2DoubleMap remainingProbabilites, double remprob, NatBitSet successors, boolean isLower)
+  {
+    double sum = 0;
+    NatBitSet temp = NatBitSets.ensureModifiable(NatBitSets.simpleSet());
+    temp = successors.clone();
+    while (remprob > 0)
+    {
+      if (isLower)
+      {
+        double min = Double.MAX_VALUE;
+        int minstate = 0;
+        for(int i : temp)
+        {
+          System.out.println(i);
+          if(min >= values.get(i))
+          {
+            minstate = i;
+            min = values.get(i);
+          }
+        }
+        temp.remove(minstate);
+        double probound = remainingProbabilites.get(minstate);
+        if(remprob<= probound)
+        {
+          sum += remprob * min;
+          remprob = 0;
+        }
+        else
+        {
+          remprob  -= probound;
+          sum += probound * min;
+        }
+      }
+      else
+      {
+        double max = 0.0;
+        int maxstate = 0;
+        for(int i : temp)
+        {
+          if(max <= values.get(i))
+          {
+            maxstate = i;
+            max = values.get(i);
+          }
+        }
+        temp.remove(maxstate);
+        double probound = remainingProbabilites.get(maxstate);
+
+        if(remprob<= probound)
+        {
+          sum += remprob* max;
+          remprob = 0;
+        }
+        else
+        {
+          remprob  -= probound;
+          sum += probound* max;
+        }
+      }
+    }
+    return sum;
+
   }
 
   /**
@@ -241,6 +373,77 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
         for (int distributionIndex=0; distributionIndex<choices.size(); distributionIndex++) {
           Bounds bounds = successorBounds(state, choices.get(distributionIndex),
                   confidenceWidthFunction.get(state).get(distributionIndex));
+          double upperBound = bounds.upperBound();
+          if (upperBound > newUpperBound) {
+            newUpperBound = upperBound;
+          }
+          double lowerBound = bounds.lowerBound();
+          if (lowerBound > newLowerBound) {
+            newLowerBound = lowerBound;
+          }
+        }
+      } else {
+        assert update == ValueUpdate.MIN_VALUE;
+
+        newUpperBound = 1.0d;
+        newLowerBound = 1.0d;
+        for (int distributionIndex=0; distributionIndex<choices.size(); distributionIndex++) {
+          Bounds bounds = successorBounds(state, choices.get(distributionIndex),
+                  confidenceWidthFunction.get(state).get(distributionIndex));
+          double upperBound = bounds.upperBound();
+          if (upperBound < newUpperBound) {
+            newUpperBound = upperBound;
+          }
+          double lowerBound = bounds.lowerBound();
+          if (lowerBound < newLowerBound) {
+            newLowerBound = lowerBound;
+          }
+        }
+      }
+
+      assert newLowerBound <= newUpperBound;
+      newBounds = Bounds.of(newLowerBound, newUpperBound);
+      bounds.put(state, newBounds);
+    }
+  }
+
+  public void update(int state, List<Distribution> choices, boolean ifByNewVI) {
+    assert update != ValueUpdate.UNIQUE_VALUE || choices.size() <= 1;
+
+    Bounds stateBounds = bounds(state);
+    if (isOne(stateBounds.lowerBound()) || isZero(stateBounds.upperBound())) {
+      return;
+    }
+    assert !target.test(state);
+
+    Bounds newBounds;
+    // If there are no choices from the state, it must have a zero value (u=0, l=0)
+    if (choices.isEmpty()) {
+      newBounds = Bounds.reachZero();
+      bounds.put(state, newBounds);
+    }
+    else if (choices.size() == 1) {
+      newBounds = successorBounds(state, choices.get(0), confidenceWidthFunction.get(state).get(0));
+      bounds.put(state, newBounds);
+    }
+    else {
+      double newLowerBound;
+      double newUpperBound;
+
+      // finds bounds for each distribution using successorBounds. The new upper and lower bound are either the maximum or minimum of all computed respective bounds
+
+      if (update == ValueUpdate.MAX_VALUE) {
+        newLowerBound = 0.0d;
+        newUpperBound = 0.0d;
+        for (int distributionIndex=0; distributionIndex<choices.size(); distributionIndex++) {
+          Bounds bounds;
+          if (ifByNewVI)
+            bounds = successorBoundsNew(state, choices.get(distributionIndex),
+                  twoSidedConfidenceWidthFunction.get(state).get(distributionIndex));
+          else
+            bounds = successorBounds(state, choices.get(distributionIndex),
+                    confidenceWidthFunction.get(state).get(distributionIndex));
+
           double upperBound = bounds.upperBound();
           if (upperBound > newUpperBound) {
             newUpperBound = upperBound;

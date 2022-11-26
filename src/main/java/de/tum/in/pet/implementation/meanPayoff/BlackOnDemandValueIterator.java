@@ -51,9 +51,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     private final int maxSuccessorsInModel;
     private final DeltaTCalculationMethod deltaTCalculationMethod;
 
-    private final boolean solveByQP;
-    private final boolean solveBySG;
-
     private final LowerBound lowerBound;
 
     private final UpperBound upperBound;
@@ -65,7 +62,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
                                       int revisitThreshold, double rMax, double pMin, double errorTolerance,
                                       Double2LongFunction nSampleFunction, double precision, long timeout,
                                       boolean getErrorProbability, SimulateMec simulateMec,
-                                      DeltaTCalculationMethod deltaTCalculationMethod, int maxSuccessorsInModel, boolean solveByQP, boolean solveBySG, LowerBound lowerBound, UpperBound upperBound) {
+                                      DeltaTCalculationMethod deltaTCalculationMethod, int maxSuccessorsInModel, LowerBound lowerBound, UpperBound upperBound) {
         super(explorer, values, rewardGenerator, revisitThreshold, rMax, precision, timeout);
         this.pMin = pMin;
         this.errorTolerance = errorTolerance;
@@ -74,8 +71,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         this.simulateMec = simulateMec;
         this.deltaTCalculationMethod = deltaTCalculationMethod;
         this.maxSuccessorsInModel = maxSuccessorsInModel;
-        this.solveByQP = solveByQP;
-        this.solveBySG = solveBySG;
         this.upperBound = upperBound;
         this.lowerBound = lowerBound;
 
@@ -106,9 +101,14 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         Int2ObjectFunction<Int2DoubleFunction> confidenceWidthFunction = x -> (y -> y < explorer.getChoices(x).size()
                 ? Math.sqrt(-Math.log(transDelta) / (2 * explorer.getActionCounts(x, y)))
                 : 0);
+        //Function for two-sided confidence width function
+        Int2ObjectFunction<Int2DoubleFunction> twoSidedConfidenceWidthFunction = x -> (y -> y < explorer.getChoices(x).size()
+                ? Math.sqrt(-Math.log(transDelta/2) / (2 * explorer.getActionCounts(x, y)))
+                : 0);
 
         // Updates the confidence width function in UnboundedReachValues.
         values.setConfidenceWidthFunction(confidenceWidthFunction);
+        values.setTwoSidedConfidenceWidthFunction(twoSidedConfidenceWidthFunction);
 
         for (int i = 0; i < nIterations; i++) {
             IntList visitStack = new IntArrayList();
@@ -200,7 +200,12 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         confidenceWidthFunction = x -> (y -> y < explorer.getChoices(x).size()
                 ? Math.sqrt(-Math.log(transDelta) / (2 * explorer.getActionCounts(x, y)))
                 : 0);
+
+        twoSidedConfidenceWidthFunction = x -> (y -> y < explorer.getChoices(x).size()
+                ? Math.sqrt(-Math.log(transDelta/2) / (2 * explorer.getActionCounts(x, y)))
+                : 0);
         values.setConfidenceWidthFunction(confidenceWidthFunction);
+        values.setTwoSidedConfidenceWidthFunction(twoSidedConfidenceWidthFunction);
 
         // the update function is ran until there has been some progress, i.e., the upper bounds of some state have been changed.
         // if there has been change, this change needs to be propagated through the rest of the states.
@@ -208,23 +213,12 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         int nMaxUpdates = explorer.exploredStateCount();
         int nUpdates = 0;
         while (ifProgress && nUpdates < nMaxUpdates) {
-            ifProgress = update();
+            if (lowerBound == LowerBound.NEWVI && upperBound == UpperBound.NEWVI)
+                ifProgress = update(true);
+            else
+                ifProgress = update(false);
             nUpdates++;
         }
-
-
-//        if (solveByQP) {
-//            System.out.println("Solving QP");
-//            Int2ObjectFunction<Int2BooleanFunction> validStateActionPairDetector = x -> (y -> (explorer.getActionCounts(x, y) > explorer.actionCountFilter));
-//            MeanPayoffQP qp = new MeanPayoffQP((MarkovDecisionProcess) explorer.model(), mecs, getLPRewardProvider(), confidenceWidthFunction, validStateActionPairDetector, true);
-//            double qp_meanpayoff = -1;
-//            try {
-//                qp_meanpayoff = qp.solveForMeanPayoff();
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//            qp_result.add(qp_meanpayoff);
-//        }
 
         return true;
 
@@ -273,13 +267,13 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
      *
      * @return true, if there have been any changes to the bounds of the states, else false.
      */
-    private boolean update() {
+    private boolean update(boolean ifByNewVI) {
         BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
         values.cacheCurrBounds(); // cache the current bounds to check if we will make any progress in update.
 
         for (int state : explorer.exploredStates()) {
             List<Distribution> realChoices = choices(state);
-            values.update(state, realChoices);
+            values.update(state, realChoices, ifByNewVI);
         }
 
         for (NatBitSet mec : this.mecs) {

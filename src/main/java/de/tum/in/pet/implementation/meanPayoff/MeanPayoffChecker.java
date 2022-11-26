@@ -6,7 +6,6 @@ import de.tum.in.pet.Input.InputOptions;
 import de.tum.in.pet.Input.InputParser;
 import de.tum.in.pet.Input.InputValues;
 import de.tum.in.pet.Main;
-import de.tum.in.pet.implementation.qp_meanpayoff.MeanPayOffSolverQP;
 import de.tum.in.pet.implementation.reachability.*;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.util.CliHelper;
@@ -130,7 +129,7 @@ public final class MeanPayoffChecker {
             valueIterator = new BlackOnDemandValueIterator<>(explorer, values, rewardGenerator,
                     ip.revisitThreshold, ip.maxReward, ip.pMin, ip.errorTolerance, nSampleFunction,
                     ip.precision / ip.maxReward, System.currentTimeMillis() + ip.timeout, ip.getErrorProbability,
-                    ip.simulateMec, ip.deltaTCalculationMethod, ip.maxSuccessorsInModel, ip.solveUsingQP, ip.solveUsingSG, ip.lowerBound, ip.upperBound);
+                    ip.simulateMec, ip.deltaTCalculationMethod, ip.maxSuccessorsInModel, ip.lowerBound, ip.upperBound);
         } else {
             Double2LongFunction nSampleFunction = s -> ip.iterSamples;
 
