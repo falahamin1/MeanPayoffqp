@@ -363,16 +363,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         Bounds newBounds;
         newBounds = getBounds(mec, targetPrecision);
 
-//        if (solveByQP)
-//        {
-//            newBounds = getBoundsByQP(mec, targetPrecision);
-//        } else if (solveBySG) {
-//            newBounds = getBoundsBySG(mec, targetPrecision);
-//
-//        } else
-//        {
-//            newBounds = getBoundsByVI(mec, targetPrecision);
-//        }
 
 
 
@@ -406,7 +396,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             newbounds = getBoundsByExponentialMethod(mec, targetPrecision);
         else if (lowerBound == LowerBound.SGL && upperBound == UpperBound.SGL)
             newbounds = getBoundsByLinearMethod(mec, targetPrecision);
-        else if (lowerBound == LowerBound.NEWVI && upperBound ==  upperBound.NEWVI) {
+        else if (lowerBound == LowerBound.NEWVI && upperBound == UpperBound.NEWVI) {
             newbounds = getBoundsByNEWVI(mec, targetPrecision);
 
 

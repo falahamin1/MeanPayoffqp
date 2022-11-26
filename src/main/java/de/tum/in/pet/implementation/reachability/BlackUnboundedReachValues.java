@@ -207,7 +207,6 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
         int minstate = 0;
         for(int i : temp)
         {
-          System.out.println(i);
           if(min >= values.get(i))
           {
             minstate = i;

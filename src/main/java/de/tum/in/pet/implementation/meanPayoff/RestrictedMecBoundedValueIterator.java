@@ -319,7 +319,6 @@ public class RestrictedMecBoundedValueIterator<S> {
       }
       else
       {
-//      System.out.println("In upper");
         double max = 0.0;
         int maxstate = 0;
         for(int i : temp)
@@ -330,10 +329,8 @@ public class RestrictedMecBoundedValueIterator<S> {
             max = values.get(i);
           }
         }
-//      System.out.println("Max state is : "+ maxstate);
         temp.remove(maxstate);
         double probound = remainingProbabilites.get(maxstate);
-//      System.out.println("Remaining probability: " + remprob + " Space present: "+ probound );
         if(remprob<= probound)
         {
           sum += remprob*this.aperidocityConstant* max;
