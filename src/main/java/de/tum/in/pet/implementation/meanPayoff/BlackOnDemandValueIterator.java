@@ -451,7 +451,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         valueIterator.setDistributionFunction(x -> y -> this.explorer.model().getChoice(x, y));
         valueIterator.setLabelFunction(x -> y -> this.explorer.model().getActions(x).get(y).label());
         valueIterator.runNewVI();
-        System.out.println("This is the new branch");
         return valueIterator.getBounds();
     }
 
