@@ -172,6 +172,7 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
       minLower = Math.min(minLower, successorBounds.lowerBound());
       maxUpper = Math.max(maxUpper, successorBounds.upperBound());
     }
+    System.out.println("Out of loop");
 
 //  If the confidence width is very high, then all the successor probabilities (T_HAT) of state, Distribution will be 0.
 //  Hence, sum will be 0. In that case, we don't return the successor bounds. We just return the bounds of the state
@@ -190,7 +191,8 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
     }
     lower += addRemainingProbabilities(lowerBoundMapping, probabilityMapping, remProb, successors, true );
     upper += addRemainingProbabilities(upperBoundMapping, probabilityMapping, remProb, successors, false );
-    return Bounds.reach(lower+remProb*minLower, upper+remProb*maxUpper);
+    System.out.println("Finished calling remaining probabilities");
+    return Bounds.reach(lower, upper);
   }
 
   /** Adds the remaining probabilities according to the new Bellman equations introduced **/
@@ -458,8 +460,13 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
         newUpperBound = 1.0d;
         newLowerBound = 1.0d;
         for (int distributionIndex=0; distributionIndex<choices.size(); distributionIndex++) {
-          Bounds bounds = successorBounds(state, choices.get(distributionIndex),
-                  confidenceWidthFunction.get(state).get(distributionIndex));
+          Bounds bounds;
+          if (ifByNewVI)
+            bounds = successorBoundsNew(state, choices.get(distributionIndex),
+                    twoSidedConfidenceWidthFunction.get(state).get(distributionIndex));
+          else
+            bounds = successorBounds(state, choices.get(distributionIndex),
+                    confidenceWidthFunction.get(state).get(distributionIndex));
           double upperBound = bounds.upperBound();
           if (upperBound < newUpperBound) {
             newUpperBound = upperBound;
