@@ -2,11 +2,16 @@ package de.tum.in.pet.implementation.reachability;
 
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
+import de.tum.in.pet.implementation.qp_meanpayoff.CompareSuccessorsLower;
+import de.tum.in.pet.implementation.qp_meanpayoff.CompareSuccessorsUpper;
+import de.tum.in.pet.implementation.qp_meanpayoff.QuickSort;
+import de.tum.in.pet.implementation.qp_meanpayoff.SuccessorInformation;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.util.SampleUtil;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.model.Distribution;
 import it.unimi.dsi.fastutil.ints.*;
+import it.unimi.dsi.fastutil.objects.ObjectHeapPriorityQueue;
 import prism.Pair;
 
 import java.util.ArrayList;
@@ -69,9 +74,11 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
     for(int state: bounds.keySet()){
       if(!oldBounds.containsKey(state)||!((Math.abs(bounds.get(state).upperBound()-oldBounds.get(state).upperBound())<1e-6)&&
               (Math.abs(bounds.get(state).lowerBound()-oldBounds.get(state).lowerBound())<1e-6))){
+        System.out.println("return value is true");
         return true;
       }
     }
+    System.out.println("Return value is false");
     return false;
   }
 
@@ -153,26 +160,39 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
     double sum = 0.0d;
     double minLower = 1;
     double maxUpper = 0;
-    Int2DoubleMap lowerBoundMapping = new Int2DoubleOpenHashMap();
-    Int2DoubleMap upperBoundMapping = new Int2DoubleOpenHashMap();
-    Int2DoubleMap probabilityMapping = new Int2DoubleOpenHashMap();
-    NatBitSet successors = NatBitSets.ensureModifiable(NatBitSets.simpleSet());
+//    Int2DoubleMap lowerBoundMapping = new Int2DoubleOpenHashMap();
+//    int [] lowerBoundOrdering = new int[distribution.size()];
+//    int [] upperBoundOrdering = new int[distribution.size()];
+//    int i =0;
+    CompareSuccessorsLower cl = new CompareSuccessorsLower();
+    CompareSuccessorsUpper cu = new CompareSuccessorsUpper();
+
+    ObjectHeapPriorityQueue<SuccessorInformation> successorListLower = new ObjectHeapPriorityQueue<>(cl);
+    ObjectHeapPriorityQueue<SuccessorInformation> successorListUpper = new ObjectHeapPriorityQueue<>(cu);
+
+//    Int2DoubleMap upperBoundMapping = new Int2DoubleOpenHashMap();
+//    Int2DoubleMap probabilityMapping = new Int2DoubleOpenHashMap();
+//    NatBitSet successors = NatBitSets.ensureModifiable(NatBitSets.simpleSet());
     for (Int2DoubleMap.Entry entry : distribution) {
       int successor = entry.getIntKey();
-      successors.add(successor);
+
+//      lowerBoundOrdering[i] = successor;
+//      upperBoundOrdering[i] = successor;
+//      i++;
       Bounds successorBounds = bounds(successor);
       double probability = Math.max(0, entry.getDoubleValue()-confidenceWidth);
       double uprobability = Math.min(1, entry.getDoubleValue() + confidenceWidth);
       sum += probability;
-      lowerBoundMapping.put(successor, successorBounds.lowerBound());
-      upperBoundMapping.put(successor, successorBounds.upperBound());
-      probabilityMapping.put(successor, uprobability - probability);
+//      lowerBoundMapping.put(successor, successorBounds.lowerBound());
       lower += successorBounds.lowerBound() * probability;
       upper += successorBounds.upperBound() * probability;
+      SuccessorInformation si = new SuccessorInformation(state, successorBounds.lowerBound(), successorBounds.upperBound(), uprobability-probability);
+      successorListLower.enqueue(si);
+      successorListUpper.enqueue(si);
       minLower = Math.min(minLower, successorBounds.lowerBound());
       maxUpper = Math.max(maxUpper, successorBounds.upperBound());
     }
-    System.out.println("Out of loop");
+
 
 //  If the confidence width is very high, then all the successor probabilities (T_HAT) of state, Distribution will be 0.
 //  Hence, sum will be 0. In that case, we don't return the successor bounds. We just return the bounds of the state
@@ -184,80 +204,67 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
       // of successor might be bad, since it may be wrong. Some actions of successor, might not even be explored.
       return bounds(state);
     }
+
     double remProb = 1-sum;
     if(doMostConservativeGuess(state, distribution)) {
-      minLower = 0;
-      maxUpper = 1;
+      return  Bounds.reach(lower, upper+remProb);
     }
-    lower += addRemainingProbabilities(lowerBoundMapping, probabilityMapping, remProb, successors, true );
-    upper += addRemainingProbabilities(upperBoundMapping, probabilityMapping, remProb, successors, false );
-    System.out.println("Finished calling remaining probabilities");
-    return Bounds.reach(lower, upper);
+    else if(successorListLower.size() == 1)
+    {
+      return Bounds.reach(lower + remProb * minLower, upper + remProb * maxUpper);
+    }
+    else
+    {
+      lower += addRemainingProbabilities(successorListLower, remProb, true);
+      upper += addRemainingProbabilities(successorListUpper, remProb, false);
+      return Bounds.reach(lower, upper);
+    }
+
+  }
+
+  private  double addRemainingProbabilities(ObjectHeapPriorityQueue<SuccessorInformation> successorList, double remainingProbabality, boolean ifLower)
+  {
+    int sum = 0;
+    if (ifLower)
+    {
+      while (remainingProbabality > 0)
+      {
+        SuccessorInformation si = successorList.dequeue();
+        if(remainingProbabality <= si.lowerBoundValue)
+        {
+          sum += si.lowerBoundValue * remainingProbabality;
+          return sum;
+        }
+        else
+        {
+          sum += si.lowerBoundValue * si.remainingProbability;
+          remainingProbabality -= si.remainingProbability;
+        }
+
+      }
+    }
+      else
+    {
+      while (remainingProbabality > 0)
+      {
+        SuccessorInformation si = successorList.dequeue();
+        if(remainingProbabality <= si.upperBoundValue)
+        {
+          sum += si.upperBoundValue * remainingProbabality;
+          return sum;
+        }
+        else
+        {
+          sum += si.upperBoundValue * si.remainingProbability;
+          remainingProbabality -= si.remainingProbability;
+        }
+
+      }
+    }
+      return sum;
   }
 
   /** Adds the remaining probabilities according to the new Bellman equations introduced **/
-  private  double addRemainingProbabilities(Int2DoubleMap values, Int2DoubleMap remainingProbabilites, double remprob, NatBitSet successors, boolean isLower)
-  {
-    double sum = 0;
-    NatBitSet temp = NatBitSets.ensureModifiable(NatBitSets.simpleSet());
-    temp = successors.clone();
-    while (remprob > 0)
-    {
-      if (isLower)
-      {
-        double min = Double.MAX_VALUE;
-        int minstate = 0;
-        for(int i : temp)
-        {
-          if(min >= values.get(i))
-          {
-            minstate = i;
-            min = values.get(i);
-          }
-        }
-        temp.remove(minstate);
-        double probound = remainingProbabilites.get(minstate);
-        if(remprob<= probound)
-        {
-          sum += remprob * min;
-          remprob = 0;
-        }
-        else
-        {
-          remprob  -= probound;
-          sum += probound * min;
-        }
-      }
-      else
-      {
-        double max = 0.0;
-        int maxstate = 0;
-        for(int i : temp)
-        {
-          if(max <= values.get(i))
-          {
-            maxstate = i;
-            max = values.get(i);
-          }
-        }
-        temp.remove(maxstate);
-        double probound = remainingProbabilites.get(maxstate);
-
-        if(remprob<= probound)
-        {
-          sum += remprob* max;
-          remprob = 0;
-        }
-        else
-        {
-          remprob  -= probound;
-          sum += probound* max;
-        }
-      }
-    }
-    return sum;
-
-  }
 
   /**
    * @return true, if we have to update using most conservative bounds. i.e minLower to be zero and maxUpper to be 1
@@ -408,7 +415,7 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
     }
   }
 
-  public void update(int state, List<Distribution> choices, boolean ifByNewVI) {
+  public void   update(int state, List<Distribution> choices, boolean ifByNewVI) {
     assert update != ValueUpdate.UNIQUE_VALUE || choices.size() <= 1;
 
     Bounds stateBounds = bounds(state);
@@ -439,8 +446,10 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
         for (int distributionIndex=0; distributionIndex<choices.size(); distributionIndex++) {
           Bounds bounds;
           if (ifByNewVI)
-            bounds = successorBoundsNew(state, choices.get(distributionIndex),
+          {bounds = successorBoundsNew(state, choices.get(distributionIndex),
                   twoSidedConfidenceWidthFunction.get(state).get(distributionIndex));
+          }
+
           else
             bounds = successorBounds(state, choices.get(distributionIndex),
                     confidenceWidthFunction.get(state).get(distributionIndex));
@@ -481,7 +490,9 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
       assert newLowerBound <= newUpperBound;
       newBounds = Bounds.of(newLowerBound, newUpperBound);
       bounds.put(state, newBounds);
+
     }
+//    System.out.println("Bounds done");
   }
 
 }

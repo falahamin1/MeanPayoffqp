@@ -219,6 +219,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
                 ifProgress = update(false);
             nUpdates++;
         }
+        System.out.println("Returned true");
 
         return true;
 
@@ -275,6 +276,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             List<Distribution> realChoices = choices(state);
             values.update(state, realChoices, ifByNewVI);
         }
+//        System.out.println("Out of update");
 
         for (NatBitSet mec : this.mecs) {
             values.deflate(mec, this::choices);
