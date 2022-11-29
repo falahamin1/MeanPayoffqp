@@ -1,10 +1,7 @@
 package de.tum.in.pet.implementation.reachability;
 
-import de.tum.in.naturals.set.NatBitSet;
-import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.pet.implementation.qp_meanpayoff.CompareSuccessorsLower;
 import de.tum.in.pet.implementation.qp_meanpayoff.CompareSuccessorsUpper;
-import de.tum.in.pet.implementation.qp_meanpayoff.QuickSort;
 import de.tum.in.pet.implementation.qp_meanpayoff.SuccessorInformation;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.util.SampleUtil;
