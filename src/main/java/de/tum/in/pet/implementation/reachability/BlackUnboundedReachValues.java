@@ -183,7 +183,7 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
 //      lowerBoundMapping.put(successor, successorBounds.lowerBound());
       lower += successorBounds.lowerBound() * probability;
       upper += successorBounds.upperBound() * probability;
-      SuccessorInformation si = new SuccessorInformation(state, successorBounds.lowerBound(), successorBounds.upperBound(), uprobability-probability);
+      SuccessorInformation si = new SuccessorInformation(successor, successorBounds.lowerBound(), successorBounds.upperBound(), uprobability-probability);
       successorListLower.enqueue(si);
       successorListUpper.enqueue(si);
       minLower = Math.min(minLower, successorBounds.lowerBound());

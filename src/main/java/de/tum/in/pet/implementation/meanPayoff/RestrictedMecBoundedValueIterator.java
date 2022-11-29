@@ -2,11 +2,15 @@ package de.tum.in.pet.implementation.meanPayoff;
 
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
+import de.tum.in.pet.implementation.qp_meanpayoff.CompareSuccessorsLower;
+import de.tum.in.pet.implementation.qp_meanpayoff.CompareSuccessorsUpper;
+import de.tum.in.pet.implementation.qp_meanpayoff.SuccessorInformation;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.Mec;
 import de.tum.in.probmodels.model.Distribution;
 import it.unimi.dsi.fastutil.ints.*;
+import it.unimi.dsi.fastutil.objects.ObjectHeapPriorityQueue;
 import prism.Pair;
 
 import java.util.ArrayList;
@@ -246,23 +250,31 @@ public class RestrictedMecBoundedValueIterator<S> {
     double probSum = 0.0d;
     double minLower = Integer.MAX_VALUE;
     double maxUpper = 0;
-    Int2DoubleMap remainingProbabilities = new Int2DoubleOpenHashMap();
-    Int2DoubleMap lowerValues = new Int2DoubleOpenHashMap();
-    Int2DoubleMap upperValues = new Int2DoubleOpenHashMap();
+//    Int2DoubleMap remainingProbabilities = new Int2DoubleOpenHashMap();
+//    Int2DoubleMap lowerValues = new Int2DoubleOpenHashMap();
+//    Int2DoubleMap upperValues = new Int2DoubleOpenHashMap();
     NatBitSet successors = NatBitSets.ensureModifiable(NatBitSets.simpleSet());
+    CompareSuccessorsLower cl = new CompareSuccessorsLower();
+    CompareSuccessorsUpper cu = new CompareSuccessorsUpper();
+
+    ObjectHeapPriorityQueue<SuccessorInformation> successorListLower = new ObjectHeapPriorityQueue<>(cl);
+    ObjectHeapPriorityQueue<SuccessorInformation> successorListUpper = new ObjectHeapPriorityQueue<>(cu);
 
     for (Int2DoubleMap.Entry entry : distribution) {
       int successor = entry.getIntKey();
       successors.add(successor);
       double probability = Math.max(0, entry.getDoubleValue()-confidenceWidth);
       double uprobability = Math.min(1, entry.getDoubleValue() + confidenceWidth);
-      remainingProbabilities.put(successor, uprobability - probability); // the remaining probability is the difference between upper and lower bound
+//      remainingProbabilities.put(successor, uprobability - probability); // the remaining probability is the difference between upper and lower bound
       Bounds succValues = values.get(successor);
       probSum += probability;
       double succLower = this.aperidocityConstant*succValues.lowerBound();
       double succUpper = this.aperidocityConstant*succValues.upperBound();
-      lowerValues.put(successor, succLower);
-      upperValues.put(successor, succUpper);
+      SuccessorInformation si = new SuccessorInformation(successor,succLower,succUpper, uprobability-probability);
+      successorListLower.enqueue(si);
+      successorListUpper.enqueue(si);
+//      lowerValues.put(successor, succLower);
+//      upperValues.put(successor, succUpper);
       lower += succLower*probability*this.aperidocityConstant;
       upper += succUpper*probability*this.aperidocityConstant;
       minLower = Math.min(minLower, succLower);
@@ -271,81 +283,125 @@ public class RestrictedMecBoundedValueIterator<S> {
     double remProb = 1-probSum;
     lower += (1-this.aperidocityConstant)*this.aperidocityConstant*values.get(state).lowerBound();
     upper += (1-this.aperidocityConstant)*this.aperidocityConstant*values.get(state).upperBound();
-    if(successors.size()==1)
+    if(successorListLower.size()==1)
     {
       lower += remProb*minLower*this.aperidocityConstant;
       upper += remProb*maxUpper*this.aperidocityConstant;
     }
     else
     {
-      lower += addRemainingProbabilities(lowerValues, remainingProbabilities, remProb, successors, true);
-      upper += addRemainingProbabilities(upperValues, remainingProbabilities, remProb, successors, false);
+      lower += addRemainingProbabilities(successorListLower, remProb, true);
+      upper += addRemainingProbabilities(successorListUpper, remProb, false);
+//      lower += addRemainingProbabilities(lowerValues, remainingProbabilities, remProb, successors, true);
+//      upper += addRemainingProbabilities(upperValues, remainingProbabilities, remProb, successors, false);
     }
 
     return Bounds.of(lower/this.aperidocityConstant, upper/this.aperidocityConstant);
   }
 
-  private  double addRemainingProbabilities(Int2DoubleMap values, Int2DoubleMap remainingProbabilites, double remprob, NatBitSet successors, boolean isLower)
+  private  double addRemainingProbabilities(ObjectHeapPriorityQueue<SuccessorInformation> successorList, double remainingProbabality, boolean ifLower)
   {
-    double sum = 0;
-    NatBitSet temp = successors.clone();
-    while (remprob > 0)
+    int sum = 0;
+    if (ifLower)
     {
-      if (isLower)
+      while (remainingProbabality > 0)
       {
-        double min = Double.MAX_VALUE;
-        int minstate = 0;
+        SuccessorInformation si = successorList.dequeue();
+        if(remainingProbabality <= si.lowerBoundValue)
+        {
+          sum += si.lowerBoundValue * remainingProbabality * this.aperidocityConstant;
+          return sum;
+        }
+        else
+        {
+          sum += si.lowerBoundValue * si.remainingProbability * this.aperidocityConstant;
+          remainingProbabality -= si.remainingProbability;
+        }
 
-        for(int i : temp)
-        {
-          if(min >= values.get(i))
-          {
-            minstate = i;
-            min = values.get(i);
-          }
-        }
-        temp.remove(minstate);
-        double probound = remainingProbabilites.get(minstate);
-        if(remprob<= probound)
-        {
-          sum += remprob*this.aperidocityConstant*min;
-          remprob = 0;
-        }
-        else
-        {
-          remprob  -= probound;
-          sum += probound * this.aperidocityConstant * min;
-        }
       }
-      else
+    }
+    else
+    {
+      while (remainingProbabality > 0)
       {
-        double max = 0.0;
-        int maxstate = 0;
-        for(int i : temp)
+        SuccessorInformation si = successorList.dequeue();
+        if(remainingProbabality <= si.upperBoundValue)
         {
-          if(max <= values.get(i))
-          {
-            maxstate = i;
-            max = values.get(i);
-          }
-        }
-        temp.remove(maxstate);
-        double probound = remainingProbabilites.get(maxstate);
-        if(remprob<= probound)
-        {
-          sum += remprob*this.aperidocityConstant* max;
-          remprob = 0;
+          sum += si.upperBoundValue * remainingProbabality * this.aperidocityConstant;
+          return sum;
         }
         else
         {
-          remprob  -= probound;
-          sum += probound * this.aperidocityConstant * max;
+          sum += si.upperBoundValue * si.remainingProbability * this.aperidocityConstant;
+          remainingProbabality -= si.remainingProbability;
         }
+
       }
     }
     return sum;
-
   }
+
+//  private  double addRemainingProbabilities(Int2DoubleMap values, Int2DoubleMap remainingProbabilites, double remprob, NatBitSet successors, boolean isLower)
+//  {
+//    double sum = 0;
+//    NatBitSet temp = successors.clone();
+//    while (remprob > 0)
+//    {
+//      if (isLower)
+//      {
+//        double min = Double.MAX_VALUE;
+//        int minstate = 0;
+//
+//        for(int i : temp)
+//        {
+//          if(min >= values.get(i))
+//          {
+//            minstate = i;
+//            min = values.get(i);
+//          }
+//        }
+//        temp.remove(minstate);
+//        double probound = remainingProbabilites.get(minstate);
+//        if(remprob<= probound)
+//        {
+//          sum += remprob*this.aperidocityConstant*min;
+//          remprob = 0;
+//        }
+//        else
+//        {
+//          remprob  -= probound;
+//          sum += probound * this.aperidocityConstant * min;
+//        }
+//      }
+//      else
+//      {
+//        double max = 0.0;
+//        int maxstate = 0;
+//        for(int i : temp)
+//        {
+//          if(max <= values.get(i))
+//          {
+//            maxstate = i;
+//            max = values.get(i);
+//          }
+//        }
+//        temp.remove(maxstate);
+//        double probound = remainingProbabilites.get(maxstate);
+//        if(remprob<= probound)
+//        {
+//          sum += remprob*this.aperidocityConstant* max;
+//          remprob = 0;
+//        }
+//        else
+//        {
+//          remprob  -= probound;
+//          sum += probound * this.aperidocityConstant * max;
+//        }
+//      }
+//    }
+//    return sum;
+//
+//  }
 
   // todo: vectorize operation
   /**
