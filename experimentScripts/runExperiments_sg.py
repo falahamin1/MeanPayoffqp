@@ -93,8 +93,7 @@ if input_values.get_error_probability:
 #         runConfigs[i] += " --simulateMec " + input_values.simulate_mec
 
 # add --qp for running in qp mode and adding a timeout for the qp execution (temporary)
-for i in range(len(runConfigs)):
-    runConfigs[i] += " --sg"
+
 
 
 
