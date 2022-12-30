@@ -1,7 +1,7 @@
 import argparse
 import os
 import inputOptions
-import modelConfigurations
+import modelConfigurations_new
 from ParallelRange import get_thread_allocations
 from multiprocessing import Pool
 
@@ -64,9 +64,9 @@ input_values = inputOptions.parse_user_input(parser.parse_args())
 # Benchmark type
 runConfigs = None
 if input_values.is_ctmdp:
-    runConfigs = modelConfigurations.ctmdpConfigs
+    runConfigs = modelConfigurations_new.ctmdpConfigs
 else:
-    runConfigs = modelConfigurations.mdpConfigs
+    runConfigs = modelConfigurations_new.mdpConfigs
 
 # Information level
 for i in range(len(runConfigs)):
