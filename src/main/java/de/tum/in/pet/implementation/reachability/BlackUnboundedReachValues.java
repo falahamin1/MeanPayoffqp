@@ -9,6 +9,7 @@ import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.model.Distribution;
 import it.unimi.dsi.fastutil.ints.*;
 import it.unimi.dsi.fastutil.objects.ObjectHeapPriorityQueue;
+import org.jfree.base.modules.SubSystem;
 import prism.Pair;
 
 import java.util.ArrayList;
@@ -71,11 +72,11 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
     for(int state: bounds.keySet()){
       if(!oldBounds.containsKey(state)||!((Math.abs(bounds.get(state).upperBound()-oldBounds.get(state).upperBound())<1e-6)&&
               (Math.abs(bounds.get(state).lowerBound()-oldBounds.get(state).lowerBound())<1e-6))){
-        System.out.println("return value is true");
+//        System.out.println("return value is true");
         return true;
       }
     }
-    System.out.println("Return value is false");
+//    System.out.println("Return value is false");
     return false;
   }
 
@@ -124,6 +125,9 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
       maxUpper = Math.max(maxUpper, successorBounds.upperBound());
     }
 
+
+
+
 //  If the confidence width is very high, then all the successor probabilities (T_HAT) of state, Distribution will be 0.
 //  Hence, sum will be 0. In that case, we don't return the successor bounds. We just return the bounds of the state
 //  itself. This is because, bounds of the incoming state will anyways be larger than the successorBounds, since it is
@@ -134,12 +138,46 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
       // of successor might be bad, since it may be wrong. Some actions of successor, might not even be explored.
       return bounds(state);
     }
-    double remProb = 1-sum;
+
     if(doMostConservativeGuess(state, distribution)) {
       minLower = 0;
       maxUpper = 1;
     }
-    return Bounds.reach(lower+remProb*minLower, upper+remProb*maxUpper);
+
+    double remProb = 1.0-sum;
+    double returnValUpper = rounded(upper+remProb*maxUpper);
+    double returnValLower = rounded(lower+remProb*minLower);
+    return Bounds.of(returnValLower, returnValUpper);
+  }
+
+  public void debugger(int state, Distribution distribution, double confidenceWidth)
+  {
+    double sum = 0.0d;
+    double checksum = 0 ;
+    double maxUpper = 0.0;
+    System.out.println("debugging in state"+ state);
+    for (Int2DoubleMap.Entry entry : distribution) {
+      int successor = entry.getIntKey();
+      Bounds successorBounds = bounds(successor);
+      double probability = Math.max(0, entry.getDoubleValue()-confidenceWidth);
+     System.out.println("Successor "+ successor + " with upper bound "+ successorBounds.upperBound() +
+             " and with probability "+ probability);
+     sum += probability;
+     checksum += probability * successorBounds.upperBound();
+     if(maxUpper < successorBounds.upperBound())
+     {
+       maxUpper = successorBounds.upperBound();
+     }
+    }
+    double remprob = 1.0 - sum;
+    System.out.println(" The remaining probability is "+ remprob);
+    sum += remprob;
+    System.out.println("Value without grey box "+ checksum);
+    checksum += remprob * maxUpper;
+    System.out.println(" The total probability is "+ sum);
+    System.out.println(" The value by calculation "+ checksum);
+
+
   }
   /**
    * Returns the bounds of an action according to the new Bellman equations in the CAV'23 paper.
@@ -338,9 +376,8 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
     Distribution distribution = choiceFunction.get(actionState).get(actionIndex);
     double newUpperBound = successorBounds(actionState, distribution,
             confidenceWidthFunction.get(actionState).get(actionIndex)).upperBound();
-
     for (int state: states){
-      if (upperBound(state)>newUpperBound) {
+    if (upperBound(state)>newUpperBound) {
         bounds.put(state, Bounds.of(lowerBound(state), newUpperBound));
       }
     }
@@ -359,11 +396,22 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
     Bounds newBounds;
     // If there are no choices from the state, it must have a zero value (u=0, l=0)
     if (choices.isEmpty()) {
+//      System.out.println("A no choice state is reached "+ "state number "+ state);
       newBounds = Bounds.reachZero();
       bounds.put(state, newBounds);
     }
     else if (choices.size() == 1) {
       newBounds = successorBounds(state, choices.get(0), confidenceWidthFunction.get(state).get(0));
+      if(newBounds.upperBound()<1)
+      {
+        Distribution dist = choices.get(0);
+
+//        System.out.println("A single action state "+ state + " with action to states ");
+        for (Int2DoubleMap.Entry entry : dist)
+        {
+          System.out.println(entry.getIntKey());
+        }
+      }
       bounds.put(state, newBounds);
     }
     else {
@@ -425,10 +473,23 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
     // If there are no choices from the state, it must have a zero value (u=0, l=0)
     if (choices.isEmpty()) {
       newBounds = Bounds.reachZero();
+//      System.out.println("State" + state + " have no choices.");
       bounds.put(state, newBounds);
     }
     else if (choices.size() == 1) {
-      newBounds = successorBounds(state, choices.get(0), confidenceWidthFunction.get(state).get(0));
+      newBounds = successorBounds(state, choices.get(0), confidenceWidthFunction.get(state).get(0));//debugger not called
+//      if (newBounds.upperBound() < 1) //added
+//      {
+////        System.out.println("State "+ state + " has upper bound "+ newBounds.upperBound() + " and only a single action.");
+////        debugger(state,choices.get(0), confidenceWidthFunction.get(state).get(0));
+////        for (Int2DoubleMap.Entry entry : choices.get(0))
+////        {
+////          int successor = entry.getIntKey();
+////          System.out.print( successor +"  with upper bound " + bounds.get(successor).upperBound() + ", ");
+////        }
+//      }
+
+
       bounds.put(state, newBounds);
     }
     else {
@@ -443,7 +504,8 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
         for (int distributionIndex=0; distributionIndex<choices.size(); distributionIndex++) {
           Bounds bounds;
           if (ifByNewVI)
-          {bounds = successorBoundsNew(state, choices.get(distributionIndex),
+          {
+            bounds = successorBoundsNew(state, choices.get(distributionIndex),
                   twoSidedConfidenceWidthFunction.get(state).get(distributionIndex));
           }
 
@@ -486,10 +548,17 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
 
       assert newLowerBound <= newUpperBound;
       newBounds = Bounds.of(newLowerBound, newUpperBound);
+      if (newBounds.upperBound() < 1) {
+        System.out.println("State " + state + " has upper bound " + newBounds.upperBound() + " with multiple actions");
+      }
       bounds.put(state, newBounds);
 
     }
 //    System.out.println("Bounds done");
   }
 
+  private double rounded (double val)
+  {
+    return (Math.round(val * 10000.0) / 10000.0);
+  }
 }

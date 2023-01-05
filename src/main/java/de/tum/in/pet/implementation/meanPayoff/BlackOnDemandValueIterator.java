@@ -218,8 +218,9 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             else
                 ifProgress = update(false);
             nUpdates++;
+//            System.out.println("Nupdate value is:"+ nUpdates);
         }
-        System.out.println("Returned true");
+//        System.out.println("Returned true");
 
         return true;
 
@@ -276,13 +277,23 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             List<Distribution> realChoices = choices(state);
             values.update(state, realChoices, ifByNewVI);
         }
-//        System.out.println("Out of update");
 
         for (NatBitSet mec : this.mecs) {
             values.deflate(mec, this::choices);
         }
 
         return values.checkProgress();
+    }
+    public void printIfUpperBoundLessThanOne()
+    {
+        for (int state: explorer.exploredStates())
+        {
+            if (values.bounds(state).upperBound() < 1)
+            {
+                System.out.println("Value of state "+state + " is less than one" );
+                break;
+            }
+        }
     }
 
     /**
@@ -364,11 +375,14 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         // lambda function that returns a state object when given the state index. required for accessing reward generator function.
         Bounds newBounds;
         newBounds = getBounds(mec, targetPrecision);
+//        System.out.println("Upper bound of MEC:"+newBounds.upperBound());
+
 
 
 
 
         Bounds scaledBounds = Bounds.of(newBounds.lowerBound() / this.rMax, newBounds.upperBound() / this.rMax);
+
 
         // In the case when we run VI after some new states have been added, the lower bounds may be worse than the
         // previously computed bounds. However, we know that the MEC's reward must be greater than the previously computed
@@ -376,7 +390,8 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 //
         scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), mecBounds.lowerBound()));
 //        System.out.println("Precision is:"+targetPrecision);
-//        System.out.println("lower bound: "+ scaledBounds.lowerBound() + " upper bound: "+scaledBounds.upperBound());
+//        System.out.println("lower bound: "+ scaledBounds.lowerBound() + " upper bound: "+scaledBounds.upperBound())
+
         updateStayAction(mecIndex, scaledBounds);
 
     }

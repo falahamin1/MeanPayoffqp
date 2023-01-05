@@ -95,20 +95,24 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
    * @return Returns the distribution of the stay action.
    */
   public static Distribution getStayDistribution(Bounds bounds){
+//    System.out.println(" In get Stay distribution");
 
     assert bounds.lowerBound()<=1 && bounds.upperBound()<=1;
     assert bounds.lowerBound()>=0 && bounds.upperBound()>=0;
 
     DistributionBuilder builder = Distributions.defaultBuilder();
     if(bounds.lowerBound()>0) {
+//      System.out.println("lower bound > 0");
       builder.add(plusState, bounds.lowerBound());
     }
     if(bounds.upperBound()<1) {
+//      System.out.println("lower bound < 1");
       builder.add(minusState, 1d-bounds.upperBound());
 
     }
     if(bounds.difference()>0) {
-      builder.add(uncertainState, bounds.difference());
+//      System.out.println("difference is"+ bounds.difference());
+        builder.add(uncertainState, bounds.difference());
     }
 
     return builder.scaled();

@@ -139,6 +139,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
         // initialState may be part of an MEC and the MEC may be collapsed, and we may have a representative that is different
         // from initialState
         representative = boundedMecQuotient.representative(initialState);
+
       }
       timeVBound.add(new Pair<>(System.currentTimeMillis(), Bounds.of(this.rMax*bounds(initialState).lowerBound(), this.rMax*bounds(initialState).upperBound())));
       run++;  // count of episodic runs
@@ -148,6 +149,11 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     }
 
     onSamplingFinished(initialState);
+  }
+  public void displayUpperBound (int state)
+  {
+    Bounds bounds = values.bounds(state);
+    System.out.println("Upper bound:"+ bounds.upperBound());
   }
 
   protected boolean isTimeout() {
