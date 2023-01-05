@@ -402,16 +402,6 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
     }
     else if (choices.size() == 1) {
       newBounds = successorBounds(state, choices.get(0), confidenceWidthFunction.get(state).get(0));
-      if(newBounds.upperBound()<1)
-      {
-        Distribution dist = choices.get(0);
-
-//        System.out.println("A single action state "+ state + " with action to states ");
-        for (Int2DoubleMap.Entry entry : dist)
-        {
-          System.out.println(entry.getIntKey());
-        }
-      }
       bounds.put(state, newBounds);
     }
     else {
@@ -548,9 +538,6 @@ public class BlackUnboundedReachValues extends UnboundedReachValues {
 
       assert newLowerBound <= newUpperBound;
       newBounds = Bounds.of(newLowerBound, newUpperBound);
-      if (newBounds.upperBound() < 1) {
-        System.out.println("State " + state + " has upper bound " + newBounds.upperBound() + " with multiple actions");
-      }
       bounds.put(state, newBounds);
 
     }
