@@ -83,6 +83,8 @@ def write_model_result(result_file, model_result):
     result_file.write('Upper bound: ' + str(model_result.upper_bounds[-1]) + '\n')
     result_file.write('Iteration number: ' + str(model_result.iteration_number) + '\n')
     result_file.write('Num states explored: ' + str(model_result.num_explored_states) + '\n')
+    result_file.write('Time spent in updateMEC: ' + str(model_result.update_MEC_time) + '\n')
+    result_file.write('Number of visits in updateMEC: ' + str(model_result.update_MEC_visits) + '\n')
     result_file.write('\n')
     result_file.write('\n')
     result_file.write('\n')
@@ -96,13 +98,15 @@ def write_model_results(model_name, model_result_list, result_directory):
         for model_result in model_result_list:
             write_model_result(result_file, model_result)
 
-        (al, au, ar, av_states) = benchmarksUtil.get_average_values(model_result_list)
+        (al, au, ar, av_states, updateMEC, updateMEC_visits) = benchmarksUtil.get_average_values(model_result_list)
         precision = au - al
         result_file.write('Average Lower Bound: ' + str(al) + '\n')
         result_file.write('Average Upper Bound: ' + str(au) + '\n')
         result_file.write('Average Run time: ' + str(ar) + '\n')
         result_file.write('Precision: ' + str(precision) + '\n')
         result_file.write('Average number of states explored: ' + str(av_states) + '\n')
+        result_file.write('Average time spent in updateMEC: ' + str(updateMEC) + '\n')
+        result_file.write('Average visits to updateMEC: ' + str(updateMEC_visits) + '\n')
 
 
 def write_results(results, result_directory):

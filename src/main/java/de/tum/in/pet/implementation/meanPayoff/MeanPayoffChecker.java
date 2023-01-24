@@ -42,6 +42,10 @@ public final class MeanPayoffChecker {
     private static final List<Pair<Long, Bounds>> timeVBound = new ArrayList<>();
     private static final List<Double> qp_result = new ArrayList<>();
     private static final List<String> additionalWriteInfo = new ArrayList<>();
+    private static long updateMecTimes;
+
+    private static int updateMecVisits;
+
 
     public static double solve(ModelGenerator generator, int rewardIndex, InputValues inputValues)
             throws PrismException {
@@ -98,7 +102,6 @@ public final class MeanPayoffChecker {
         timeVBound.addAll(valueIterator.timeVBound);
         qp_result.addAll(valueIterator.qp_result);
         additionalWriteInfo.addAll(valueIterator.additionalWriteInfo);
-
         return inputValues.maxReward * bounds.average();
 
     }
@@ -152,6 +155,11 @@ public final class MeanPayoffChecker {
         timeVBound.addAll(valueIterator.timeVBound);
         qp_result.addAll(valueIterator.qp_result);
         additionalWriteInfo.addAll(valueIterator.additionalWriteInfo);
+        for (double UpdateMecTime: valueIterator.updateMECTimes)
+        {
+            updateMecTimes += UpdateMecTime;
+        }
+        updateMecVisits = valueIterator.updateMECVisits;
 
         return ip.maxReward * bounds.average();
 
@@ -205,7 +213,7 @@ public final class MeanPayoffChecker {
         double meanPayoff = solve(generator, rewardIndex, ip);
         long endTime = System.currentTimeMillis();
 
-        ResultWriter.write(commandLine, timeVBound, qp_result, additionalWriteInfo, ip.outputPath);
+        ResultWriter.write(commandLine, timeVBound, qp_result, additionalWriteInfo, ip.outputPath, updateMecTimes, updateMecVisits);
 
         logger.log(Level.INFO, "Time to parse, construct model, and compute {0}", new Object[]{endTime - startTime1});
         logger.log(Level.INFO, "Time to compute {0}", new Object[]{endTime - startTime2});

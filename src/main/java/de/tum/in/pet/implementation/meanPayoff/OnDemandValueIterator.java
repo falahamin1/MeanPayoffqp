@@ -46,12 +46,16 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
   protected List<Pair<Long, Bounds>> timeVBound = new ArrayList<>();
 
+  protected List<Long> updateMECTimes = new ArrayList<>(); //Keeps track of the time spent in updatMEC
+
   protected List<Double> qp_result = new ArrayList<>();
 
   protected final long timeout;
 
   // Each string will be added to the temp.txt file.
   protected final List<String> additionalWriteInfo = new ArrayList<>();
+
+  protected int updateMECVisits = 0; //Keeps track of the number of times UpdateMEC is called.
 
   public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator, 
                                int revisitThreshold, double rMax, double precision, long timeout) {

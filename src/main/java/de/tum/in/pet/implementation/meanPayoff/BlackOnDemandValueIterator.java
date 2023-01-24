@@ -58,6 +58,9 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     protected static final double initialNSamples = 1e4;
     protected static final double multiplicativeFactor = 5;
 
+
+
+
     public BlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                       int revisitThreshold, double rMax, double pMin, double errorTolerance,
                                       Double2LongFunction nSampleFunction, double precision, long timeout,
@@ -136,7 +139,16 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
                     if (BoundedMecQuotient.isUncertainState(currentState) || BoundedMecQuotient.isPlusState(currentState)) {
                         int mecIndex = stateToMecMap.get(visitStack.removeInt(visitStack.size() - 1));
                         explorer.activateActionCountFilter();
-                        updateMec(mecIndex);  //MECs are simulated and then solved using qp to get the upper bound
+                        long startTime = System.currentTimeMillis();
+                        updateMec(mecIndex);
+                        long endTime = System.currentTimeMillis();
+                        if (endTime - startTime > 0)
+                        {
+                            updateMECTimes.add(endTime - startTime);
+                        }
+
+//                        double timetaken = endTime - startTime;
+//                        System.out.println("Time taken:"+ timetaken);
                         explorer.deactivateActionCountFilter();
                     }
                     break;
@@ -398,6 +410,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     private Bounds getBounds(Mec mec, double targetPrecision)
     {
+        updateMECVisits++;
         Bounds newbounds;
         if (lowerBound == LowerBound.VI && upperBound == UpperBound.VI)
             newbounds = getBoundsByVI(mec,targetPrecision);
@@ -548,7 +561,13 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             // already very precise. Thus, the probability of reaching the uncertain state would be very small and we may
             // never be able to run VI on the newly added states again. Thus, we need to run VI straight after adding new
             // states.
+            long startTime = System.currentTimeMillis();
             updateMec(i);
+            long endTime = System.currentTimeMillis();
+            if(endTime - startTime < 0)
+            {
+                updateMECTimes.add(endTime-startTime);
+            }
         }
 
         explorer.deactivateActionCountFilter();

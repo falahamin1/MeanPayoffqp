@@ -14,7 +14,7 @@ import java.util.List;
 public class ResultWriter {
 
     public static void write(CommandLine commandLine, List<Pair<Long, Bounds>> timeVBound,
-                             List<Double> qp_result, List<String> additionalWriteInfo, String outputFilePath) throws IOException {
+                             List<Double> qp_result, List<String> additionalWriteInfo, String outputFilePath, double updateMecTime, int updateMecVisits) throws IOException {
         BufferedWriter writer = new BufferedWriter(new FileWriter(outputFilePath));
 
         StringBuilder modelDetails = new StringBuilder();
@@ -61,6 +61,10 @@ public class ResultWriter {
         writer.write(lowerBounds.toString());
         writer.newLine();
         writer.write(upperBounds.toString());
+        writer.newLine();
+        writer.write(Double.toString(updateMecTime));
+        writer.newLine();
+        writer.write(Integer.toString(updateMecVisits));
         writer.newLine();
         writer.write(qp_line.toString());
 
