@@ -83,7 +83,7 @@ def write_model_result(result_file, model_result):
     result_file.write('Upper bound: ' + str(model_result.upper_bounds[-1]) + '\n')
     result_file.write('Iteration number: ' + str(model_result.iteration_number) + '\n')
     result_file.write('Num states explored: ' + str(model_result.num_explored_states) + '\n')
-    result_file.write('Time spent in updateMEC: ' + str(model_result.update_MEC_time) + '\n')
+    result_file.write('Time spent in updateMEC: ' + str(model_result.get_update_mec_time() + '\n')
     result_file.write('Number of visits in updateMEC: ' + str(model_result.update_MEC_visits) + '\n')
     result_file.write('\n')
     result_file.write('\n')

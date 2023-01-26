@@ -564,7 +564,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             long startTime = System.currentTimeMillis();
             updateMec(i);
             long endTime = System.currentTimeMillis();
-            if(endTime - startTime < 0)
+            if(endTime - startTime > 0)
             {
                 updateMECTimes.add(endTime-startTime);
             }
