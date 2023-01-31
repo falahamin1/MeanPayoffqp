@@ -225,9 +225,9 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         int nMaxUpdates = explorer.exploredStateCount();
         int nUpdates = 0;
         while (ifProgress && nUpdates < nMaxUpdates) {
-            if (lowerBound == LowerBound.NEWVI && upperBound == UpperBound.NEWVI)
-                ifProgress = update(true);
-            else
+//            if (lowerBound == LowerBound.NEWVI && upperBound == UpperBound.NEWVI)
+//                ifProgress = update(true);
+//            else
                 ifProgress = update(false);
             nUpdates++;
 //            System.out.println("Nupdate value is:"+ nUpdates);
