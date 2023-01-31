@@ -265,7 +265,6 @@ public class RestrictedMecBoundedValueIterator<S> {
       successors.add(successor);
       double probability = Math.max(0, entry.getDoubleValue()-confidenceWidth);
       double uprobability = Math.min(1, entry.getDoubleValue() + confidenceWidth);
-//      remainingProbabilities.put(successor, uprobability - probability); // the remaining probability is the difference between upper and lower bound
       Bounds succValues = values.get(successor);
       probSum += probability;
       double succLower = this.aperidocityConstant*succValues.lowerBound();
@@ -273,8 +272,6 @@ public class RestrictedMecBoundedValueIterator<S> {
       SuccessorInformation si = new SuccessorInformation(successor,succLower,succUpper, uprobability-probability);
       successorListLower.enqueue(si);
       successorListUpper.enqueue(si);
-//      lowerValues.put(successor, succLower);
-//      upperValues.put(successor, succUpper);
       lower += succLower*probability*this.aperidocityConstant;
       upper += succUpper*probability*this.aperidocityConstant;
       minLower = Math.min(minLower, succLower);
@@ -292,8 +289,6 @@ public class RestrictedMecBoundedValueIterator<S> {
     {
       lower += addRemainingProbabilities(successorListLower, remProb, true);
       upper += addRemainingProbabilities(successorListUpper, remProb, false);
-//      lower += addRemainingProbabilities(lowerValues, remainingProbabilities, remProb, successors, true);
-//      upper += addRemainingProbabilities(upperValues, remainingProbabilities, remProb, successors, false);
     }
 
     return Bounds.of(lower/this.aperidocityConstant, upper/this.aperidocityConstant);
@@ -309,12 +304,12 @@ public class RestrictedMecBoundedValueIterator<S> {
         SuccessorInformation si = successorList.dequeue();
         if(remainingProbabality <= si.lowerBoundValue)
         {
-          sum += si.lowerBoundValue * remainingProbabality * this.aperidocityConstant;
+          sum += si.lowerBoundValue * remainingProbabality;
           return sum;
         }
         else
         {
-          sum += si.lowerBoundValue * si.remainingProbability * this.aperidocityConstant;
+          sum += si.lowerBoundValue * si.remainingProbability;
           remainingProbabality -= si.remainingProbability;
         }
 
@@ -327,12 +322,12 @@ public class RestrictedMecBoundedValueIterator<S> {
         SuccessorInformation si = successorList.dequeue();
         if(remainingProbabality <= si.upperBoundValue)
         {
-          sum += si.upperBoundValue * remainingProbabality * this.aperidocityConstant;
+          sum += si.upperBoundValue * remainingProbabality;
           return sum;
         }
         else
         {
-          sum += si.upperBoundValue * si.remainingProbability * this.aperidocityConstant;
+          sum += si.upperBoundValue * si.remainingProbability;
           remainingProbabality -= si.remainingProbability;
         }
 
