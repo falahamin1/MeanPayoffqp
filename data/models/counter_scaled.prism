@@ -6,7 +6,7 @@
 // Max successors per action, in model: 2
 // Min Probability in model: 0.3333333333333333
 
-mdp
+ctmdp
 
 const int xmin = 0;
 const int xmax = 25;
