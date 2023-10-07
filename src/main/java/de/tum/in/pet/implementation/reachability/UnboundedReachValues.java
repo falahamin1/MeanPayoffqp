@@ -96,6 +96,12 @@ public class UnboundedReachValues implements UnboundedValues {
   }
 
   @Override
+  public List<Distribution> getBadActions (int state, List<Distribution> choices)
+  {
+    return null;
+  }
+
+  @Override
   // collapse a set of state into a new representative. Updates the bounds of the representative and removes bounds for all other states
   public void collapse(int representative, List<Distribution> choices, IntSet collapsed) {
     bounds.keySet().removeAll(collapsed);
@@ -136,6 +142,8 @@ public class UnboundedReachValues implements UnboundedValues {
     }
     return Bounds.reach(lower / sum, upper / sum);
   }
+
+
 
   @Override
   // updates bound of a state according to the given list of distributions

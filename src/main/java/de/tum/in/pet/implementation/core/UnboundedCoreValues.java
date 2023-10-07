@@ -92,6 +92,12 @@ abstract class UnboundedCoreValues implements UnboundedValues {
     }
 
     @Override
+    public List<Distribution> getBadActions(int state, List<Distribution> choices)
+    {
+      return null;
+    }
+
+    @Override
     public double upperBound(int state) {
       return state < bounds.length ? bounds[state] : 1.0d;
     }
@@ -162,6 +168,12 @@ abstract class UnboundedCoreValues implements UnboundedValues {
     @Override
     public int sampleNextAction(int state, List<Distribution> choices) {
       return 0;
+    }
+
+    @Override
+    public List<Distribution> getBadActions(int state, List<Distribution> choices)
+    {
+      return null;
     }
 
     @Override

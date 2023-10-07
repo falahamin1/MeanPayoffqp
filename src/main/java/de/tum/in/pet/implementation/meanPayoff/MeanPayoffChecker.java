@@ -158,6 +158,7 @@ public final class MeanPayoffChecker {
 
     }
 
+
     private static double solveCtmdp(ModelGenerator prismGenerator, int rewardIndex, InputValues inputValues)
             throws PrismException {
 

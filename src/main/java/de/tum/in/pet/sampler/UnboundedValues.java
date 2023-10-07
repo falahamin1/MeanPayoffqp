@@ -18,6 +18,8 @@ public interface UnboundedValues {
 
   int sampleNextAction(int state, List<Distribution> choices);
 
+  public  List<Distribution> getBadActions(int state, List<Distribution> choices);
+
   void update(int state, List<Distribution> choices);
 
   void explored(int state);

@@ -15,8 +15,12 @@ import it.unimi.dsi.fastutil.ints.*;
 import prism.Pair;
 import prism.PrismException;
 
+import de.tum.in.probmodels.model.Distribution;
+import java.util.List;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.ToDoubleFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -148,6 +152,51 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     }
 
     onSamplingFinished(initialState);
+    printStatesandActions();
+
+  }
+    public void printStatesandActions()
+    {
+      IntSet exploredStates = explorer.exploredStates();
+      List<Distribution> badchoices = new ArrayList<>();
+      List<Distribution> allchoices = new ArrayList<>();
+      int statecount = 0;
+      for (IntIterator iterator = exploredStates.iterator(); iterator.hasNext(); )
+      {
+        int state = iterator.nextInt();
+        List<Distribution> choices = new ArrayList<>(explorer.getChoices(state));
+        badchoices.addAll(getBadChoices(state, choices));
+        allchoices.addAll(choices);
+        statecount ++;
+
+//        System.out.println("States: " + state);
+//        for (Distribution choice: choices)
+//        {
+//          System.out.println("Action: " + choice);
+//          System.out.println("Transitions: " + choice.support().size());
+//        }
+      }
+      int transitioncount = 0;
+      System.out.println("States visited: " + statecount);
+
+      for (Distribution choice: allchoices)
+      {
+        transitioncount += choice.size();
+      }
+      System.out.println("All transitions visited:"+ transitioncount);
+      System.out.println("Bad choices:" + badchoices);
+      int badtransitioncount = 0;
+      for (Distribution bchoice: badchoices)
+      {
+        badtransitioncount += bchoice.size();
+      }
+      System.out.println("Bad transitions: " + badtransitioncount);
+
+    }
+  public List<Distribution> getBadChoices(int state , List<Distribution> choices)
+  {
+   return values.getBadActions(state, choices);
+
   }
 
   protected boolean isTimeout() {

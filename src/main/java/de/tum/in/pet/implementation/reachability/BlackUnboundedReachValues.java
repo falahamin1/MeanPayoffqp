@@ -76,12 +76,30 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
             ? 1 : isSmallestFixPoint()
                   ? 1.0d - choices.get(i).sumWeighted(this::lowerBound)
                   : successorBounds(state, choices.get(i), confidenceWidthFunction.apply(state).applyAsDouble(i)).upperBound();
+    ToDoubleFunction<Integer> actionScoreLower = i -> choices.get(i).isEmpty()
+            ? 1 : isSmallestFixPoint()
+            ? 1.0d - choices.get(i).sumWeighted(this::lowerBound)
+            : successorBounds(state, choices.get(i), confidenceWidthFunction.apply(state).applyAsDouble(i)).lowerBound();
 
     return SampleUtil.getOptimalChoice(choices, actionScore);
+//    return SampleUtil.getOptimalChoiceOptimized(choices, actionScore, actionScoreLower);
+  }
+  @Override
+  public List<Distribution> getBadActions(int state, List<Distribution> choices)
+  {
+    ToDoubleFunction<Integer> actionScore = i -> choices.get(i).isEmpty()
+            ? 1 : isSmallestFixPoint()
+            ? 1.0d - choices.get(i).sumWeighted(this::lowerBound)
+            : successorBounds(state, choices.get(i), confidenceWidthFunction.apply(state).applyAsDouble(i)).upperBound();
+    ToDoubleFunction<Integer> actionScoreLower = i -> choices.get(i).isEmpty()
+            ? 1 : isSmallestFixPoint()
+            ? 1.0d - choices.get(i).sumWeighted(this::lowerBound)
+            : successorBounds(state, choices.get(i), confidenceWidthFunction.apply(state).applyAsDouble(i)).lowerBound();
+    return SampleUtil.getBadActions(choices, actionScore, actionScoreLower);
   }
 
   /**
-   * Returns the bounds of an action according to the modified Bellman Equations equations in the CAV'19 paper. They
+   * Returns the bounds of an action according to the modified Bellman Equations in the CAV'19 paper. They
    * have been slightly modified according to Section 3.6.
    * @param state: originating state. If the distribution is void, the bounds of state are returned.
    * @param distribution: The probability distribution for sampling the next successor for an action.

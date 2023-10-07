@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.function.IntToDoubleFunction;
 import java.util.function.ToDoubleFunction;
 
+import java.util.ArrayList;
+
 public final class SampleUtil {
   private SampleUtil() {
   }
@@ -111,5 +113,112 @@ public final class SampleUtil {
     assert isEqual(bestValue, score.applyAsDouble(distributionIndex));
 
     return distributionIndex;
+  }
+  public static List<Distribution> getBadActions(List<Distribution> choices, ToDoubleFunction<Integer> score, ToDoubleFunction<Integer> scoreL)
+  {
+    List<Distribution> optimizedChoices = new ArrayList<>();
+
+    for (int i = 0; i < choices.size(); i++) {
+      Distribution choiceI = choices.get(i);
+      boolean isOptimal = true;
+
+      for (int j = 0; j < choices.size(); j++) {
+        if (i != j) {
+          double scoreUI = score.applyAsDouble(i);
+          double scoreLJ = scoreL.applyAsDouble(j);
+
+          if (scoreUI < scoreLJ) {
+            isOptimal = false;
+            break;
+          }
+        }
+      }
+
+      if (!isOptimal) {
+        optimizedChoices.add(choiceI);
+      }
+    }
+
+
+    return optimizedChoices;
+  }
+
+  public static int getOptimalChoiceOptimized(List<Distribution> choices,
+                                     ToDoubleFunction<Integer> score, ToDoubleFunction<Integer> scoreL ) {
+    choices = getOptimizedChoices(choices, score, scoreL );
+    int choiceCount = choices.size();
+    if (choiceCount == 1) {
+      return 0;
+    }
+
+    int maximalBestActions = 0;
+    double bestValue = Double.NEGATIVE_INFINITY;
+    double[] actionUpperBounds = new double[choiceCount];
+    for (int choice = 0; choice < choiceCount; choice++) {
+      double upperBound = score.applyAsDouble(choice);
+      actionUpperBounds[choice] = upperBound;
+      if (upperBound > bestValue) {
+        maximalBestActions = isEqual(upperBound, bestValue) ? maximalBestActions + 1 : 1;
+        bestValue = upperBound;
+      } else if (isEqual(upperBound, bestValue)) {
+        maximalBestActions += 1;
+      }
+    }
+
+    if (isZero(bestValue)) {
+      // All successors have an score == 0
+      return -1;
+    }
+
+    // maximalBestActions was an upper bound on the amount, compute precisely now
+    int bestActionCount = 0;
+    int[] bestActions = new int[maximalBestActions];
+    for (int choice = 0; choice < choiceCount; choice++) {
+      if (isEqual(bestValue, actionUpperBounds[choice])) {
+        bestActions[bestActionCount] = choice;
+        bestActionCount += 1;
+      }
+    }
+
+    // There has to be a witness for the bestValue
+    assert bestActionCount > 0;
+    int distributionIndex = Sample.sampleUniform(bestActions, bestActionCount);
+    assert isEqual(bestValue, score.applyAsDouble(distributionIndex));
+
+    return distributionIndex;
+  }
+
+  public static List<Distribution> getOptimizedChoices(List<Distribution> choices,
+                                                       ToDoubleFunction<Integer> score, ToDoubleFunction<Integer> scoreL) {
+    List<Distribution> optimizedChoices = new ArrayList<>();
+
+    for (int i = 0; i < choices.size(); i++) {
+      Distribution choiceI = choices.get(i);
+      boolean isOptimal = true;
+
+      for (int j = 0; j < choices.size(); j++) {
+        if (i != j) {
+          double scoreUI = score.applyAsDouble(i);
+          double scoreLJ = scoreL.applyAsDouble(j);
+
+          if (scoreUI < scoreLJ) {
+            isOptimal = false;
+            break;
+          }
+        }
+      }
+
+      if (isOptimal) {
+        optimizedChoices.add(choiceI);
+      }
+    }
+    int difference = choices.size() - optimizedChoices.size();
+    if(difference > 0)
+    {
+      System.out.println("The difference in size: " + difference);
+    }
+
+
+    return optimizedChoices;
   }
 }

@@ -20,6 +20,7 @@ import prism.Pair;
 import prism.PrismException;
 
 import java.util.*;
+import java.util.function.ToDoubleFunction;
 import java.util.logging.Level;
 
 import static de.tum.in.probmodels.util.Util.isZero;
@@ -51,9 +52,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     private final int maxSuccessorsInModel;
     private final DeltaTCalculationMethod deltaTCalculationMethod;
 
-    private final boolean solveByQP;
-    private final boolean solveBySG;
-
     private final LowerBound lowerBound;
 
     private final UpperBound upperBound;
@@ -74,8 +72,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         this.simulateMec = simulateMec;
         this.deltaTCalculationMethod = deltaTCalculationMethod;
         this.maxSuccessorsInModel = maxSuccessorsInModel;
-        this.solveByQP = solveByQP;
-        this.solveBySG = solveBySG;
         this.upperBound = upperBound;
         this.lowerBound = lowerBound;
 
@@ -146,7 +142,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
                     explore(currentState);  // action choices etc. are populated in the partial model. The bounds of currentState are also initialised.
                 }
 
-                List<Distribution> choices = choices(currentState);
+                List<Distribution> choices = choices(currentState); //available actions from the current state
                 if (choices.isEmpty()) {
                     break;
                 }
@@ -211,20 +207,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             ifProgress = update();
             nUpdates++;
         }
-
-
-//        if (solveByQP) {
-//            System.out.println("Solving QP");
-//            Int2ObjectFunction<Int2BooleanFunction> validStateActionPairDetector = x -> (y -> (explorer.getActionCounts(x, y) > explorer.actionCountFilter));
-//            MeanPayoffQP qp = new MeanPayoffQP((MarkovDecisionProcess) explorer.model(), mecs, getLPRewardProvider(), confidenceWidthFunction, validStateActionPairDetector, true);
-//            double qp_meanpayoff = -1;
-//            try {
-//                qp_meanpayoff = qp.solveForMeanPayoff();
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//            qp_result.add(qp_meanpayoff);
-//        }
 
         return true;
 
@@ -675,6 +657,11 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         return choices;
     }
 
+    protected List<Distribution> choices(List<Distribution> choices) {
+
+        return choices;
+    }
+
     @Override
     protected void onSamplingFinished(int initialState) {
         super.onSamplingFinished(initialState);
@@ -899,5 +886,12 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     private double rounded (double val)
     {
         return (Math.round(val * 10000.0) / 10000.0);
+    }
+
+    @Override
+    public List<Distribution> getBadChoices(int state, List<Distribution> choices)
+    {
+        return values.getBadActions(state, choices);
+
     }
 }
